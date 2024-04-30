@@ -1,5 +1,4 @@
 ---
-import { blogPostSlug } from "@lib/utils";
 import type { CollectionEntry } from "astro:content";
 
 type Props = {
@@ -7,14 +6,10 @@ type Props = {
 };
 
 const { entry } = Astro.props;
-const href =
-  entry.collection === "blog"
-    ? `/blog/${blogPostSlug(entry)}`
-    : `/${entry.collection}/${entry.slug}`;
 ---
 
 <a
-  href={href}
+  href={`/${entry.collection}/${entry.slug}`}
   class="relative group flex flex-nowrap py-3 px-4 pr-10 rounded-lg border border-black/15 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white transition-colors duration-300 ease-in-out"
 >
   <div class="flex flex-col flex-1 truncate">

@@ -1,0 +1,123 @@
+---
+title: Minishell
+description: "As part of the UNIX Systems class at WWU, each student makes a basic shell program, msh."
+date: 2012-06-01
+modified: 2013-07-24
+category: work
+tags: [unix, minishell, c, shell, wwu]
+comments: true
+feature_image: textile_cone.jpg
+darken_image: 0.4
+lighten_text: true
+---
+
+Phil Nelson's UNIX Systems class at WWU guides each student through a series of six assignments, each adding more functionality to a basic shell program. At it's start, <code>msh</code> can <code>fork</code> and <code>eval</code>, but not much else. By the end of the 10 week class, both the minishell and the students are much more capable.
+
+### Features Implemented
+
+- Command-line parameters (inluding quoted strings and escape characters)
+- Comments
+- Built-in commands
+- Environment variable expansion
+- Nested commands-- for example, `envset file_contents $(cat ${FILENAME})`
+- Signal handling
+- Pipelined commands
+- Input and output redirection
+- If statements and While loops (this implies that the shell interpreter is [Turing Complete](http://en.wikipedia.org/wiki/Turing_Completeness)!)
+- Various other expansions (for example, <code>$?</code> is the exit code of the last command and <code>$$</code> is the PID.)
+
+Because this was a school project and the class is still being taught, I can't provide source code here. However, if you're interested (and _not_ a student at WWU!), send me an email about it.
+
+import { Image } from "astro:assets";
+import minishellScreencap from "./minishell_screencap.jpg";
+
+<figure>
+  <Image
+    src={minishellScreencap}
+    alt="A test run of the minishell exercising some of its capabilities."
+  />
+  <figcaption>
+    A test run of the minishell exercising some of its capabilities.
+  </figcaption>
+</figure>
+
+## Sieve of Eratosthenes
+
+Most of the grade for each minishell assignment is determined by a test script. The scripts are provided by the professor and they exercise the features required at each step. The test scripts are famously picky.
+(For example: I once struggled for hours to figure out why a particular line of my output was getting rejected. It turned out I was outputting the NUL-character in my NUL-terminated string. Since NUL is not printed, my output looked identical but was rejected by <code>diff</code>).
+
+Once I'd passed the final test script, I could have called it quits. However, I decided to play with my newly finished minishell and write a test of my own.
+
+With the addition of If statements and While loops, the language interpreted by the minishell is now [Turing Complete](http://en.wikipedia.org/wiki/Turing_Completeness). This means that it is (theoretically) possible for <code>msh</code> to compute anything that can be computed. I decided to take advantage of this, and implemented the [Sieve of Eratosthenes](http://en.wikipedia.org/wiki/Sieve_of_Eratosthenes) in the language defined by my minishell.
+
+import mshSieve from "./msh-sieve.png";
+
+<figure>
+  <Image src={mshSieve} alt="A test run of the sieve program" />
+  <figcaption> A test run of the sieve program </figcaption>
+</figure>
+
+Implementing this algorithm in the restricted environment of the minishell involved some complicated workarounds. For example, the only variables we have are environment variables (strings). Since the algorithm calls for an array of numbers, I use a space-separated string of base 10 numbers. To get the first element of this 'array', I used <code>sed</code> and a regex capture for a space-terminated series of digits. Anyway, here is the code, in all its ugliness.
+
+```sh
+aecho -n "Enter the last number to check for prime-iness: "
+read MAX
+while [ -n "$(echo ${MAX} | sed -E "s/[0-9]*//g")" -o ${MAX} -ge 274 ]
+   if [ ${MAX} -ge 274 ]
+      aecho "Sorry, the line buffers are too short to hold that many numbers."
+      aecho -n "Please enter a number: "
+   else
+      aecho -n "'${MAX}' is not a number. Please enter a number: "
+   end
+   read MAX
+end
+envset IX 2
+while [ ${IX} -le ${MAX} ]
+   envset NUMS "${NUMS} ${IX}"
+   envset IX $(expr ${IX} + 1)
+end
+aecho -n "Would you like to display composite numbers as well? (y/n) "
+read SHOW_COMP
+while [ ${SHOW_COMP} != "y" -a ${SHOW_COMP} != "n" ]
+   aecho -n "Please enter a 'y' or 'n' "
+   read SHOW_COMP
+end
+#While NUMS is not empty
+while echo ${NUMS} | grep "[0-9]" > /dev/null
+   #Copy NUMS to TNUMS, delete NUMS
+   envset TNUMS "${NUMS}"
+   envunset NUMS
+   #set PRIME to the first element of TNUMS
+   if [ -n "$(echo ${TNUMS} | sed -E "s/[0-9]*\s+(.*)?/\1/g")" ]
+      envset PRIME "$(echo ${TNUMS} | sed -E "s/([0-9]*)\s+.*/\1/g")"
+   else
+      envunset TNUMS
+   end
+   #remove the first element of TNUMS
+   if [ -n "$(echo ${TNUMS} | sed -E "s/[0-9]*\s*(.*)?/\1/g")" ]
+      envset TNUMS "$(echo ${TNUMS} | sed -E "s/[0-9]*\s+(.*)?/\1/g")"
+   else
+      envunset TNUMS
+   end
+   echo ${PRIME} is a prime!
+   #while TNUMS is not empty
+   while echo ${TNUMS} | grep "[0-9]" > /dev/null
+      #set CAND to the first element of TNUMS
+      envset CAND "$(echo ${TNUMS} | sed -E "s/([0-9]*)(\s+.*)?/\1/g")"
+      #remove the first element of TNUMS
+      if [ -n "$(echo ${TNUMS} | sed -E "s/[0-9]*\s+(.*)?/\1/g")" ]
+         envset TNUMS "$(echo ${TNUMS} | sed -E "s/([0-9]*)(\s+.*)?/\2/g")"
+      else
+         envunset TNUMS
+      end
+      #if PRIME is a factor of CAND
+      if [ $(expr ${CAND} % ${PRIME}) -eq 0 ]
+         if [ ${SHOW_COMP} = y ]
+            echo "   ${CAND} is composite: ${PRIME} is a factor"
+         end
+      else
+         envset NUMS "${NUMS} ${CAND}"
+      end
+   end
+end
+```

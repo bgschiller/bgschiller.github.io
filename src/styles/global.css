@@ -55,6 +55,11 @@ article {
   }
 }
 
+article
+  :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-style: unset;
+}
+
 .animate {
   @apply opacity-0 translate-y-3;
   @apply transition-all duration-700 ease-out;

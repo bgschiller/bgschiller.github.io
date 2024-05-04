@@ -1,5 +1,5 @@
 <script type="text/javascript">
-  var original_scores = [
+  const originalScores = [
     11.91016708231156, 18.6351574485437, 19.82181869172409, 21.4323930621364,
     22.97143607702743, 23.443839871107166, 25.984069071721386,
     26.643205278242714, 29.35979248562027, 31.709731565483505,
@@ -41,11 +41,20 @@
 
   function app() {
     return {
-      chartData: toBuckets(original_scores).map((count) => ({
-        before: count,
-        // after: count,
-      })),
-      scale: 3,
+      originalScores,
+      adjustedScores: null,
+      get chartData() {
+        const adjustedBuckets =
+          this.adjustedScores && toBuckets(this.adjustedScores);
+        return toBuckets(this.originalScores).map((count, index) => ({
+          before: count,
+          after: adjustedBuckets && adjustedBuckets[index],
+        }));
+      },
+      get highGrade() {
+        return Math.max(...originalScores);
+      },
+      visualScale: 10,
       labels: [
         "<10",
         "<20",
@@ -58,9 +67,119 @@
         "<90",
         "<100",
       ],
+      addTo100() {
+        this.linearM = 1;
+        this.linearB = 100 - this.highGrade;
+        this.linearScale();
+      },
+      scaleTo100() {
+        this.linearM = 100 / this.highGrade;
+        this.linearB = 0;
+        this.linearScale();
+      },
+      linearM: 1,
+      linearB: 0,
+      linearScale() {
+        this.adjustedScores = this.originalScores.map(
+          (score) => this.linearM * score + this.linearB,
+        );
+      },
+      rootA: 1,
+      rootScale() {
+        this.adjustedScores = this.originalScores.map(
+          (d) => Math.pow(100, 1 - this.rootA) * Math.pow(d, this.rootA),
+        );
+      },
     };
   }
 </script>
+<div x-data="astro" x-bind="refreshOnPageLoad">
+  <template x-if="pageLoaded && typeof app !== 'undefined'">
+    <div x-data="app()" x-cloak class="app-container">
+      <div class="container">
+        <div class="shadow-container">
+          <div class="header-section">
+            <div class="scales">
+              <div class="linear-scales">
+                <p><strong>Linear Scales</strong></p>
+                <div class="high-grade">
+                  <button @click="addTo100()">High Grade to 100 (add)</button>
+                  <button @click="scaleTo100()"
+                    >High Grade to 100 (scale)</button
+                  >
+                </div>
+                <span>y =</span><input
+                  x-model.number="linearM"
+                  @keyup.enter="linearScale()"
+                />
+                <span>x +</span><input x-model.number="linearB" />
+                <button @click="linearScale()" @keyup.enter="linearScale()"
+                  >Scale</button
+                >
+              </div>
+              <div class="root-scales">
+                <p><strong>Root Scales</strong></p>
+                <span>y = 100<sup>(1-a)</sup> * x<sup>a</sup>, where a =</span
+                ><input x-model.number="rootA" @keyup.enter="rootScale()" />
+                <button @click="rootScale()">Scale</button>
+              </div>
+            </div>
+
+            <!-- Legends -->
+            <div class="legends">
+              <div class="legend">
+                <div class="legend-icon uncurved"></div>
+                <div class="legend-text">Uncurved</div>
+              </div>
+              <div class="legend">
+                <div class="legend-icon curved"></div>
+                <div class="legend-text">Curved</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="line chart-section">
+            <!-- Bar Chart -->
+            <div class="chart">
+              <template x-for="data in chartData">
+                <div class="chart-bar">
+                  <div
+                    :style="`height: ${data.before * visualScale}px; width: ${adjustedScores ? '50%' : '100%'}`"
+                    class="bar uncurved"
+                  >
+                  </div>
+                  <div
+                    :style="`height: ${(data.after || data.before) * visualScale}px; width: ${adjustedScores ? '50%' : '0'}`"
+                    class="bar curved"
+                  >
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Labels -->
+            <div
+              class="chart-labels"
+              :style="`width: ${ 100 - 1/chartData.length*100 + 3}%`"
+            >
+            </div>
+
+            <div class="label-section">
+              <template x-for="data in labels">
+                <div class="label">
+                  <div class="label-inner">
+                    <div class="label-line"></div>
+                    <div x-text="data" class="label-text"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
 <style>
   /* Container styles */
   .app-container {
@@ -154,11 +273,14 @@
     width: 16.666666%; /* equivalent to w-1/6 in Tailwind */
     padding-inline: 0.5rem;
     margin-bottom: -1rem;
+    align-items: flex-end;
   }
 
   .bar {
     position: relative;
-    transition: height 0.2s ease-in;
+    transition:
+      height 0.6s ease,
+      width 0.6s ease;
   }
 
   .bar.uncurved:hover {
@@ -238,72 +360,37 @@
     font-size: 0.875rem;
     color: #4b5563;
   }
+  button {
+    /* the default styles, to override tailwind stuff */
+    appearance: auto;
+    text-rendering: auto;
+    color: buttontext;
+    letter-spacing: normal;
+    word-spacing: normal;
+    line-height: normal;
+    text-transform: none;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-block;
+    text-align: center;
+    align-items: flex-start;
+    cursor: default;
+    box-sizing: border-box;
+    background-color: buttonface;
+    margin: 0em;
+    padding-block: 1px;
+    padding-inline: 6px;
+    border-width: 2px;
+    border-style: outset;
+    border-color: buttonborder;
+    border-image: initial;
+  }
+  input {
+    width: 5rem;
+    border: 1px solid #d1d5db;
+    padding-inline: 0.5rem;
+  }
+  .root-scales input {
+    width: 3rem;
+  }
 </style>
-<div x-data="astro" x-bind="refreshOnPageLoad">
-  <template x-if="pageLoaded && typeof app !== 'undefined'">
-    <div x-data="app()" x-cloak class="app-container">
-      <div class="container">
-        <div class="shadow-container">
-          <div class="header-section">
-            <div>
-              <h2 class="title">Adjusted Grades</h2>
-            </div>
-
-            <!-- Legends -->
-            <div class="legends">
-              <div class="legend">
-                <div class="legend-icon uncurved"></div>
-                <div class="legend-text">Uncurved</div>
-              </div>
-              <div class="legend">
-                <div class="legend-icon curved"></div>
-                <div class="legend-text">Curved</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="line chart-section">
-            <!-- Bar Chart -->
-            <div class="chart">
-              <template x-for="data in chartData">
-                <div class="chart-bar">
-                  <div
-                    :style="`height: ${data.before * scale}px; width: ${data.after ? '50%' : '100%'}`"
-                    class="bar uncurved"
-                  >
-                    <div x-text="data.before" class="bar-label"></div>
-                  </div>
-                  <div
-                    x-show="data.after"
-                    :style="`height: ${data.after * scale}px; width: 50%`"
-                    class="bar curved"
-                  >
-                    <div x-text="data.after" class="bar-label"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-
-            <!-- Labels -->
-            <div
-              class="chart-labels"
-              :style="`width: ${ 100 - 1/chartData.length*100 + 3}%`"
-            >
-            </div>
-
-            <div class="label-section">
-              <template x-for="data in labels">
-                <div class="label">
-                  <div class="label-inner">
-                    <div class="label-line"></div>
-                    <div x-text="data" class="label-text"></div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </template>
-</div>

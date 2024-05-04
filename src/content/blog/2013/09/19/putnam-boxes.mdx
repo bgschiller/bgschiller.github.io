@@ -63,58 +63,56 @@ Okay, so my worst enemy could be stacking the deck against me, setting things up
 
 It's a little hard to visualize 2010 boxes, so lets go with something smaller. How about five? Play with the demo below for a bit. You can move i balls from box B<sub>i</sub> by dragging them to another box. Can you get all of the balls distributed evenly? If so, try making it harder by lowering the 'Ball Multiplier' (that's the n from the 5n balls we're working with).
 
-<figure>
-  <iframe
-    src="/extras/putnam_boxes_demo.html"
-    width="100%"
-    class="auto-height"
-    style="min-width:513px;"
-  ></iframe>
-  <figcaption>
-    If you want to play with the number of boxes, this demo is{" "}
-    <a href="/extras/putnam_boxes_demo.html" target="_blank">
-      also available here
-    </a>
-    , where it has a bit more room to breathe.
-  </figcaption>
-</figure>
+import BoxesDemo from "./BoxesDemo.astro";
 
-If you played that for a bit, you probably developed some sort of strategy. (If you didn't, [go ahead](/extras/putnam_boxes_demo.html); we'll wait).
+<BoxesDemo />
 
-<figure>
-  <img src="/images/cos_b.jpg" />
-  <figcaption>We'll continue after a short JELL-O Pudding break.</figcaption>
-</figure>
+If you played that for a bit, you probably developed some sort of strategy. (If you didn't, go ahead; we'll wait).
 
 ### Rescue missions
 
 For me, a strategy that seems to work is to move balls towards box B_1, and redistribute from there one at a time. We can also use the balls in box B_1 to 'rescue' balls in another box. This is most easily understood with an example.
 
+import rescue1 from "./rescue_1.png";
+import rescue2 from "./rescue_2.png";
+import rescue3 from "./rescue_3.png";
+import rescue4 from "./rescue_4.png";
+import rescue5 from "./rescue_5.png";
+import stuck1 from "./stuck_1.png";
+import stuck2 from "./stuck_2.png";
+import unsolvable from "./unsolvable.png";
+
 <figure>
-  <img src="/images/boxes/rescue_1.png" />
-  <figcaption>How are we going to get a ball out of box \(B_3\) </figcaption>
+  <Image src={rescue1} alt="How are we going to get a ball out of box B_3" />
+  <figcaption>
+    How are we going to get a ball out of box B<sub>3</sub>?
+  </figcaption>
 </figure>
 
 In the game above, our n is 1, so we're trying to get 1 ball in each box. Box B_3, with two balls, has too many! We need to take one out, but the rules are that we have to take out 3 at a time. So, we will send a ball to 'rescue' the balls in B_3.
 
 <figure>
-  <img src="/images/boxes/rescue_2.png" />
+  <Image src={rescue2} alt="We moved a ball from B_1 to B_3" />
   <figcaption>
-    We moved a ball from \(B_1\) to \(B_3\). Now we have enough in \(B_3\) to
-    move them all to \(B_1\).
+    We moved a ball from B<sub>1</sub> to B<sub>3</sub>. Now we have enough in B
+    <sub>3</sub> to move them all to B<sub>1</sub>.
   </figcaption>
 </figure>
 
 <figure>
-  <img src="/images/boxes/rescue_3.png" />
-  <img src="/images/boxes/rescue_4.png" />
+  <Image
+    src={rescue3}
+    alt="We move the balls from boxes B_2 and B_3 into B_1"
+  />
+  <Image src={rescue4} alt="The balls from B_2 and B_3 land in B_1" />
   <figcaption>
-    We move the balls from boxes \(B_2\) and \(B_3\) into \(B_1\).
+    We move the balls from boxes B<sub>2</sub> and B<sub>3</sub> into B
+    <sub>1</sub>.
   </figcaption>
 </figure>
 
 <figure>
-  <img src="/images/boxes/rescue_5.png" />
+  <Image src={rescue5} alt="Now that we can move the balls individually" />
   <figcaption>
     Now that we can move the balls individually, we evenly distribute them.
   </figcaption>
@@ -122,8 +120,10 @@ In the game above, our n is 1, so we're trying to get 1 ball in each box. Box B_
 
 Okay, so everything's peachy then, right? Not so fast. Are we always going to be able to execute a rescue mission like that? What could go wrong? I'll leave you to contemplate that while I admire this orange.
 
+import tanGerine from "./tan_gerine.png";
+
 <figure>
-  <img src="/images/tan_gerine.png" />
+  <Image src={tanGerine} alt="Actually, I don't think it's an orange." />
   <figcaption>Actually, I don't think it's an orange.</figcaption>
 </figure>
 
@@ -132,7 +132,10 @@ Okay, so everything's peachy then, right? Not so fast. Are we always going to be
 What if everyone needs a rescue, _and no one is there to help_? Box B_1 has 0 balls, B_2 has fewer than 2, B_3 has fewer than 3, and so on.
 
 <figure>
-  <img src="/images/boxes/stuck_1.png" />
+  <Image
+    src={stuck1}
+    alt="Nobody here is planning on moving before the spring thaw."
+  />
   <figcaption>
     Nobody here is planning on moving before the spring thaw.
   </figcaption>
@@ -141,15 +144,18 @@ What if everyone needs a rescue, _and no one is there to help_? Box B_1 has 0 ba
 What can we do about this? Well, we could make sure that there are so many balls that this never happens. For this, it is helpful to think of a worst-case scenario. In the very worst case, with the most stuck balls, every box B<sub>i</sub> has i -1 balls. There is no slack anywhere in the system.
 
 <figure>
-  <img src="/images/boxes/stuck_2.png" />
+  <Image
+    src={stuck2}
+    alt="Every box has one ball too few to be able to move them."
+  />
   <figcaption>
     Every box has one ball too few to be able to move them.
   </figcaption>
 </figure>
 
-In the 5 boxes case, the worst-case scenario involves 10 balls: 0 + 1 + 2 + 3 + 4. We know that if the game comes to us in that state, we'll _never_ get the balls evenly distributed. But if there's even one more ball, everything frees up. Wherever that extra ball lands, we can move the balls in that box into B_1, and from there execute rescue missions.
+In the 5 boxes case, the worst-case scenario involves 10 balls: 0 + 1 + 2 + 3 + 4. We know that if the game comes to us in that state, we'll _never_ get the balls evenly distributed. But if there's even one more ball, everything frees up. Wherever that extra ball lands, we can move the balls in that box into B<sub>1</sub>, and from there execute rescue missions.
 
-How many balls do we need for 2010 boxes? We still need one more than worst case of 0 + 1 + 2 + 3 + \… + 2009 , but what is that sum? It turns out there's an easy way to count up all the numbers from 1 to 2009 (or really anything you like).
+How many balls do we need for 2010 boxes? We still need one more than worst case of 0 + 1 + 2 + 3 + … + 2009 , but what is that sum? It turns out there's an easy way to count up all the numbers from 1 to 2009 (or really anything you like).
 
 ### How to count
 
@@ -175,9 +181,9 @@ Each column sums to 11!
     11 + 11 + 11 + 11 + 11 + 11 + 11 + 11 + 11 + 11
 ```
 
-Since there are 10 columns, we have 11 \cdot 10. But we needed two rows of 1 + 2 + \… + 10 to get to that, so we have to cut our 11 \cdot 10 in half: <Fraction numerator="11 ... 10" denominator="2" /> = 55.
+Since there are 10 columns, we have 11 _ 10. But we needed two rows of 1 + 2 + … + 10 to get to that, so we have to cut our 11 _ 10 in half: <Fraction numerator="11 * 10" denominator="2" /> = 55.
 
-Now, to get 1 + 2 + 3 + \… + 2009 , we can imagine lining up our rows and sum each column.
+Now, to get 1 + 2 + 3 + … + 2009 , we can imagine lining up our rows and sum each column.
 
 ```
         1 +    2 + ... + 2008 + 2009
@@ -186,11 +192,11 @@ Now, to get 1 + 2 + 3 + \… + 2009 , we can imagine lining up our rows and sum 
      2010 + 2010 + ... + 2010 + 2010
 ```
 
-So now we can say with surety, the greatest number of balls you can have where it's still possible to get stuck is <Fraction numerator="2010 ... 2009" denominator="2" /> = 2019045. If you want to be sure you can always move balls around, you need at least 201904*6* of them.
+So now we can say with surety, the greatest number of balls you can have where it's still possible to get stuck is <Fraction numerator="2010 * 2009" denominator="2" /> = 2019045. If you want to be sure you can always move balls around, you need at least 201904*6* of them.
 
 ### Wrapping up
 
-We now know how many balls we need to have. But if you remember back, the question asked "For which values of n" is it possible to rearrange the balls. So we have 2010n balls, and we need 2010n > 2019045 . Dividing both sides by 2010, we get n > 1004.5. If n has to be an integer (we can't put 1004 _and one half_ balls in each box!), we get n \\geq 1005.
+We now know how many balls we need to have. But if you remember back, the question asked "For which values of n" is it possible to rearrange the balls. So we have 2010n balls, and we need 2010n > 2019045 . Dividing both sides by 2010, we get n > 1004.5. If n has to be an integer (we can't put 1004 _and one half_ balls in each box!), we get n ≥ 1005.
 
 import allTheBalls from "./all-the-balls.png";
 
@@ -199,4 +205,4 @@ import allTheBalls from "./all-the-balls.png";
   <figcaption>No half balls here</figcaption>
 </figure>
 
-So there you have it. The only values of n for which it is possible to reach the distribution with exactly n balls in each of 2010 boxes are n \\geq 1005. In case anyone asks.
+So there you have it. The only values of n for which it is possible to reach the distribution with exactly n balls in each of 2010 boxes are n ≥ 1005. In case anyone asks.

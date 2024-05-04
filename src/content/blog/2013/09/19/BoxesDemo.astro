@@ -1,0 +1,208 @@
+---
+
+---
+
+<script type="text/javascript">
+  function createGame() {
+    function randomlyDistributeBalls() {
+      const boxes = new Array(this.numBoxes).fill(0);
+      for (let i = 0; i < this.numBoxes * this.ballMultiplier; i++) {
+        const boxIx = Math.floor(Math.random() * this.numBoxes);
+        boxes[boxIx] += 1;
+      }
+      this.boxes = boxes;
+    }
+
+    function reset() {
+      this.randomlyDistributeBalls();
+      this.messages = [];
+    }
+
+    function handleBallDrop(event) {
+      const target = Number(event.target.closest(".box").dataset.index);
+      const sourceBox = Number(event.dataTransfer.getData("text/plain"));
+      if (this.boxes[sourceBox] < sourceBox + 1) {
+        const message = {
+          id: Date.now(),
+          text: `Can't move only ${this.boxes[sourceBox]} from box number ${sourceBox + 1}!`,
+          type: "error",
+        };
+        this.messages.push(message);
+        setTimeout(() => {
+          this.messages = this.messages.filter((x) => x.id !== message.id);
+        }, 5000);
+        return;
+      }
+      this.boxes = this.boxes.map((x, i) => {
+        if (i === target) {
+          return x + sourceBox + 1;
+        } else if (i === sourceBox) {
+          return x - sourceBox - 1;
+        } else {
+          return x;
+        }
+      });
+      if (this.boxes.every((x) => x === this.ballMultiplier)) {
+        this.messages.push({ text: "You did it!", type: "success" });
+      }
+    }
+    const game = {
+      boxes: [],
+      numBoxes: 5,
+      ballMultiplier: 3,
+      messages: [],
+      randomlyDistributeBalls,
+      handleBallDrop,
+      newGame: reset,
+    };
+    game.randomlyDistributeBalls();
+    window.game = game;
+    return game;
+  }
+</script>
+<style>
+  .wrapper {
+    overflow: hidden; /*make sure the wrapper has no dimension*/
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .cardboard {
+    background: linear-gradient(
+      to bottom,
+      #ef8d69 0%,
+      #8c3310 82%,
+      #752201 100%,
+      #bf6e4e 100%
+    ); /* W3C */
+  }
+
+  .green-ball {
+    background: #299a0b; /* Old browsers */
+    background: -moz-linear-gradient(
+      top,
+      #299a0b 0%,
+      #10ce1a 100%
+    ); /* FF3.6+ */
+    background: -webkit-gradient(
+      linear,
+      left top,
+      left bottom,
+      color-stop(0%, #299a0b),
+      color-stop(100%, #10ce1a)
+    ); /* Chrome,Safari4+ */
+    background: -webkit-linear-gradient(
+      top,
+      #299a0b 0%,
+      #10ce1a 100%
+    ); /* Chrome10+,Safari5.1+ */
+    background: -o-linear-gradient(
+      top,
+      #299a0b 0%,
+      #10ce1a 100%
+    ); /* Opera 11.10+ */
+    background: -ms-linear-gradient(top, #299a0b 0%, #10ce1a 100%); /* IE10+ */
+    background: linear-gradient(to bottom, #299a0b 0%, #10ce1a 100%); /* W3C */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#299a0b', endColorstr='#10ce1a',GradientType=0 ); /* IE6-9 */
+  }
+
+  .box {
+    user-select: none;
+    float: left;
+    width: 80px;
+    height: 80px;
+    margin: 8px;
+    position: relative;
+  }
+
+  .circle {
+    width: 50%;
+    height: 50%;
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 50px;
+    text-align: center;
+    display: inline-block;
+    margin: 25%;
+  }
+
+  .circle-red {
+    background: red;
+    border: 3px solid yellow;
+  }
+
+  .box-label {
+    position: absolute;
+    left: 2px;
+    top: 0;
+    color: white;
+  }
+
+  #successMessage {
+    left: 580px;
+    top: 250px;
+  }
+
+  button {
+    border-width: 1px;
+    border-style: outset;
+    padding-inline: 0.5em;
+  }
+</style>
+<div id="four-boxes-game" x-data="createGame()">
+  <label for="ball_multiplier">
+    Ball Multiplier:
+    <input
+      type="text"
+      id="ball_multiplier"
+      size="2"
+      x-model="ballMultiplier"
+      @change="ballMultiplier = Math.min(9, ballMultiplier); randomlyDistributeBalls()"
+    />
+  </label>
+  &nbsp; &nbsp;
+  <label for="num_boxes">
+    Number of boxes:
+    <input
+      type="text"
+      id="num_boxes"
+      size="2"
+      x-model="numBoxes"
+      @change="numBoxes = Math.min(7, numBoxes); randomlyDistributeBalls()"
+    />
+  </label>
+  &nbsp; &nbsp;
+  <button @click="newGame()">New Game</button>
+  <div class="wrapper" id="boxes-container">
+    <template x-for="(box, index) in boxes" :key="index">
+      <div
+        class="box cardboard"
+        :data-index="index"
+        @drop="handleBallDrop"
+        @dragover.prevent
+        @dragleave.prevent
+      >
+        <div
+          class="ball circle green-ball"
+          x-text="boxes[index]"
+          draggable="true"
+          @dragstart="event.dataTransfer.effectAllowed= 'move'; event.dataTransfer.setData('text/plain', index);"
+        >
+        </div>
+        <span class="box-label" x-text="`B${index + 1}`"></span>
+      </div>
+    </template>
+  </div>
+  <template x-for="message in messages" :key="message.text">
+    <div>
+      <div
+        x-text="message.text"
+        :class="message.type === 'error' ? 'error' : 'success'"
+      >
+      </div>
+      <button x-show="message.type === 'success'" @click="newGame()"
+        >Play Again</button
+      >
+    </div>
+  </template>
+</div>

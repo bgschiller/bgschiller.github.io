@@ -1,0 +1,309 @@
+<script type="text/javascript">
+  var original_scores = [
+    11.91016708231156, 18.6351574485437, 19.82181869172409, 21.4323930621364,
+    22.97143607702743, 23.443839871107166, 25.984069071721386,
+    26.643205278242714, 29.35979248562027, 31.709731565483505,
+    32.26575185039307, 33.36538201905724, 33.40619648984549, 35.58092475897629,
+    36.50523974303057, 37.44297207326471, 37.55961064881216, 39.42612116435767,
+    40.768900383683764, 40.878454198305064, 40.9273245827082,
+    42.758119137569985, 43.49862015176569, 44.24284825781356, 44.40759363474089,
+    45.13134136587826, 46.004953185449374, 46.494311530991304,
+    46.795236111775466, 46.92454903065947, 48.72967166930388,
+    50.495347573088466, 50.651212994218, 52.53024839368656, 52.74047875657665,
+    53.581677363731686, 54.20092154140868, 54.40906924571949, 56.47409213941837,
+    56.87843674663385, 56.95432690615711, 56.97532544462788, 57.001301002179865,
+    57.0275951375817, 57.78534884862614, 58.65544422236805, 59.512153580180915,
+    59.95922543302143, 60.09950205450362, 60.56506950978711, 61.71791258638226,
+    62.2697262433332, 63.57972153130148, 64.24430775161888, 64.74556808501988,
+    65.03880080438786, 66.52371468730601, 67.3739987854934, 67.60966341903105,
+    68.81866084012287, 68.92074298083655, 70.78219313953954, 70.96328326547803,
+    71.67602161918921, 71.72277533780827, 72.82505856439994, 73.99315205885287,
+    74.6674983099709, 75.67030376096362, 75.88723257900166, 75.9332198908924,
+    76.87167754237946, 78.28890846954049, 78.66311705755275, 79.42745217881401,
+    79.75613531038078, 82.73753891885785, 84.55255762034226, 86.15980370941934,
+    86.60850662625698, 86.62887778881844, 92.96014460301608, 95.62180871996185,
+  ];
+
+  function saturatingFloor(num) {
+    const inum = Math.floor(num / 10) * 10;
+
+    return inum > 90 ? 90 : inum < 0 ? 0 : inum;
+  }
+
+  function toBuckets(data) {
+    const buckets = new Array(10).fill(0);
+    data.forEach((score) => {
+      const bucket = saturatingFloor(score) / 10;
+      buckets[bucket] += 1;
+    });
+    return buckets;
+  }
+
+  function app() {
+    return {
+      chartData: toBuckets(original_scores).map((count) => ({
+        before: count,
+        // after: count,
+      })),
+      scale: 3,
+      labels: [
+        "<10",
+        "<20",
+        "<30",
+        "<40",
+        "<50",
+        "<60",
+        "<70",
+        "<80",
+        "<90",
+        "<100",
+      ],
+    };
+  }
+</script>
+<style>
+  /* Container styles */
+  .app-container {
+    padding: 1rem;
+  }
+
+  .container {
+    max-width: 32rem;
+    margin: 0 auto;
+    padding-top: 6rem;
+  }
+
+  /* Shadow container styles */
+  .shadow-container {
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.1),
+      0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    padding: 1.5rem;
+  }
+
+  /* Header section styles */
+  .header-section {
+    display: flex;
+    justify-content: space-between; /* equivalent to md:justify-between in Tailwind */
+    align-items: center; /* equivalent to md:items-center in Tailwind */
+  }
+
+  .title {
+    font-size: 1.25rem;
+    color: #374151;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .subtitle {
+    color: #4b5563;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Legends styles */
+  .legends {
+    margin-bottom: 1rem;
+  }
+
+  .legend {
+    display: flex;
+    align-items: center;
+  }
+
+  .legend-icon {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+  }
+
+  .uncurved {
+    background-color: #3b82f6;
+  }
+
+  .curved {
+    background-color: #f59e0b;
+  }
+
+  .legend-text {
+    font-size: 0.875rem;
+    color: #4b5563;
+  }
+
+  /* Chart section styles */
+  .chart-section {
+    margin-top: 1.5rem;
+    position: relative;
+  }
+
+  /* Chart styles */
+  .chart {
+    display: flex;
+    margin-bottom: 1rem;
+    align-items: flex-end;
+    margin-inline: -0.5rem;
+  }
+
+  .chart-bar {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    width: 16.666666%; /* equivalent to w-1/6 in Tailwind */
+    padding-inline: 0.5rem;
+    margin-bottom: -1rem;
+  }
+
+  .bar {
+    position: relative;
+    transition: height 0.2s ease-in;
+  }
+
+  .bar.uncurved:hover {
+    background-color: rgba(
+      59,
+      130,
+      246,
+      0.5
+    ); /* equivalent to hover:bg-blue-400 in Tailwind */
+  }
+
+  .bar.curved:hover {
+    background-color: rgba(
+      245,
+      158,
+      11,
+      0.5
+    ); /* equivalent to hover:bg-yellow-400 in Tailwind */
+  }
+
+  .bar-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    font-size: 0.875rem;
+    color: #4b5563;
+    text-align: center;
+    margin-top: -1.5rem;
+  }
+
+  /* Chart labels styles */
+  .chart-labels {
+    border-top: 1px solid #d1d5db;
+    margin: 0 auto;
+    height: 1px;
+  }
+
+  /* Label section styles */
+  .label-section {
+    display: flex;
+    margin-inline: -0.5rem;
+    align-items: flex-end;
+  }
+
+  .label-inner {
+    position: relative;
+    height: 32px;
+  }
+
+  .label {
+    flex: 1;
+    padding-inline: 0.5rem;
+    width: 16.666666%; /* equivalent to w-1/6 in Tailwind */
+  }
+
+  .label-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+    background-color: #d1d5db;
+    width: 1px;
+    margin-inline: auto;
+    margin-top: -1px;
+    text-align: center;
+  }
+
+  .label-text {
+    position: absolute;
+    text-align: center;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+  }
+</style>
+<div x-data="astro" x-bind="refreshOnPageLoad">
+  <template x-if="pageLoaded && typeof app !== 'undefined'">
+    <div x-data="app()" x-cloak class="app-container">
+      <div class="container">
+        <div class="shadow-container">
+          <div class="header-section">
+            <div>
+              <h2 class="title">Adjusted Grades</h2>
+            </div>
+
+            <!-- Legends -->
+            <div class="legends">
+              <div class="legend">
+                <div class="legend-icon uncurved"></div>
+                <div class="legend-text">Uncurved</div>
+              </div>
+              <div class="legend">
+                <div class="legend-icon curved"></div>
+                <div class="legend-text">Curved</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="line chart-section">
+            <!-- Bar Chart -->
+            <div class="chart">
+              <template x-for="data in chartData">
+                <div class="chart-bar">
+                  <div
+                    :style="`height: ${data.before * scale}px; width: ${data.after ? '50%' : '100%'}`"
+                    class="bar uncurved"
+                  >
+                    <div x-text="data.before" class="bar-label"></div>
+                  </div>
+                  <div
+                    x-show="data.after"
+                    :style="`height: ${data.after * scale}px; width: 50%`"
+                    class="bar curved"
+                  >
+                    <div x-text="data.after" class="bar-label"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Labels -->
+            <div
+              class="chart-labels"
+              :style="`width: ${ 100 - 1/chartData.length*100 + 3}%`"
+            >
+            </div>
+
+            <div class="label-section">
+              <template x-for="data in labels">
+                <div class="label">
+                  <div class="label-inner">
+                    <div class="label-line"></div>
+                    <div x-text="data" class="label-text"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>

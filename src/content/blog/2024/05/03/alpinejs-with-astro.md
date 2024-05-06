@@ -114,3 +114,5 @@ And here's how you use it in context:
   }
 </script>
 ```
+
+This is the best I could figure out, but I still don't love it. I'd prefer to set something up once, but this requires a bit of overhead on every page using Alpine.js. Please let me know if you come up with something better.

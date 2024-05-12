@@ -1,0 +1,117 @@
+---
+title: Muggles and Base Two
+date: 2013-08-31
+description: "You can be half muggle, quarter muggle, or even 13/16 muggle. But can you be 1/3 muggle?"
+category: blog
+tags: [math, wizards, fun, muggles, teaching]
+---
+
+One day, my friend Matt Eschbach asked me, "So you can be 1/2 muggle-born, or 1/4 muggle-born. But can you be any proportion? What about 1/3?" The question turns out to have a really elegant answer, but let's work our way up to it. (Note: In order to simplify the math, we will not consider squibs as part of the analysis. I hope those readers will not feel too marginalized by this decision.)
+
+import { Image } from "astro:assets";
+
+import Half from "./half.jpg";
+import Quarter from "./quarter.jpg";
+
+<figure class="half">
+  <Image src={Half} />
+  <Image src={Quarter} />
+  <figcaption>
+    A possible parentage resulting in 1/2 and 1/4 muggles.
+  </figcaption>
+</figure>
+
+It is straightforward to come up with a lineage resulting in someone who is 1/2 muggle, such as Seamus Finnegan, or even 1/4 muggle. In fact, any fraction of the form <Fraction numerator="a"><span slot="denominator">2<sup>n</sup></span></Fraction>, where a is an integer has some lineage that produces it. To see why, consider 13/16.
+
+import ThreeSixteenths from "./three_sixteenths.jpg";
+
+<figure class="seventy">
+  <Image src="./three_sixteenths.jpg" />
+  <figcaption> A lineage resulting in a wizard who is 13/16 muggle </figcaption>
+</figure>
+
+This isn't the only way a person could end up 13/16 muggle. For example, the parentage below would also work. However, it's not as neat. For one thing, it has more people in the picture. Also, it is repetitive: the grandparent who is 1/4 muggle is the child of two great-grandparents, each 1/4 muggle.
+
+import ThreeSixteenthsAlt from "./three_sixteenths_alt.jpg";
+
+<figure class="seventy">
+  <Image src={ThreeSixteenthsAlt} />
+  <figcaption>
+    A more complicated lineage, also resulting in a wizard who is 13/16 muggle
+  </figcaption>
+</figure>
+
+Since two parents who are each 1/4 muggle will have children who are 1/4 muggle, this can go on and on-- farther back than even Bathilda Bagshot can keep track! So let's stick to the minimal lineage.
+
+import ThreeSixteenthsAlt2 from "./three_sixteenths_alt2.jpg";
+
+<figure>
+  <Image src={ThreeSixteenthsAlt2} />
+  <figcaption>
+    A lineage so complicated not even Bathilda Bagshot can keep track.
+  </figcaption>
+</figure>
+
+But _what_ (Ron might ask) does any of this have to do with base 2? Well, it's not much more than the fact that we each have two parents. And each of those parents has two parents. And... so on. At level n, the number of ancestors you have is 2<sup>n</sup>. So if you're looking for a person who is 13/16 muggle-born, you need someone for whom 13 of their 16 great-great-grandparents were muggles.
+
+Maybe it's easier to look at it from another perspective. Let's go back up the family tree far enough that everyone on that level is either 100% wizard, or 100% muggle. Consider Miracle Max, a wizard at this level on the family tree. Max can see into the future, and wants to calculate what his contribution to his descendants' wizardliness will be.
+
+import MiracleMax from "./miracle_max.jpg";
+
+<figure>
+  <Image src={MiracleMax} />
+  <figcaption>
+    Great-great-great grandad Miracle Max and his wife Valerie.
+  </figcaption>
+</figure>
+
+His children will derive half of the wizardliness from him (and half from his wife Valerie). Those children will pass along half again of that half to their own kids. Miracle Max's descendants will get 1/2, 1/4, 1/8, ... of his wizardliness. Those numbers are all of the form <Fraction numerator="1"><span slot="denominator">2<sup>n</sup></span></Fraction>.
+
+This is true for _each_ ancestor at this level: they contribute <Fraction numerator="1"><span slot="denominator">2<sup>n</sup></span></Fraction> to your wizardliness. Your total wizardliness is the sum of all these contributions. If we add up a bunch of <Fraction numerator="1"><span slot="denominator">2<sup>n</sup></span></Fraction> terms, the result will have the form <Fraction numerator="a"><span slot="denominator">2<sup>n</sup></span></Fraction>, or 'some number over a power of two'.
+
+### A Refresher on Fractional Binary
+
+We're used to writing numbers in decimal (base 10), where `0.abc` would mean <Fraction numerator="a" denominator="10" /> + <Fraction numerator="b"><span slot="denominator">10<sup>2</sup></Fraction> + <Fraction numerator="c"><span slot="denominator">10<sup>3</sup></Fraction>. In binary (base 2), `0.abc` would mean <Fraction numerator="a" denominator="2" /> + <Fraction numerator="b"><span slot="denominator">2<sup>2</sup></Fraction> + <Fraction numerator="c"><span slot="denominator">2<sup>3</sup></Fraction>. So we could write 5/8 as <Fraction numerator="1" denominator="2" /> + <Fraction numerator="0" denominator="4" /> + <Fraction numerator="1" denominator="8" /> = 0.101<sub>2</sub>. (The little subscript 2 is saying 'this number is written in base 2')
+
+There are some numbers that are hard to write down in decimal form (eg, 1/3 = 0.3333...). We need a dot-dot-dot in order to fully capture the number. Binary also has numbers like this: 2/5 = 0.0110011001100...<sub>2</sub>. In fact, the only numbers that you _can_ write without a dot-dot-dot in binary are <Fraction numerator="a"><span slot="denominator">2<sup>n</sup></span></Fraction>.
+
+### An Easier Way
+
+If you were paying close attention, you may have noticed that I didn't include 16 great-great-grandparents in the first genealogy tree. To save myself the drawing, I used the trick of writing 13/16 in binary:
+
+<Fraction numerator="13" denominator="16" /> = 0.1101<sub>2</sub> The binary
+form tells us that in order to be 13/16 muggle-born, we need
+<Fraction numerator="1" denominator="2" /> + <Fraction
+  numerator="1"
+  denominator="4"
+/> + <Fraction numerator="0" denominator="8" /> + <Fraction
+  numerator="1"
+  denominator="16"
+/>
+of the ancestry to be of muggle origin. In other words, we need 1 parent, 1
+additional grandparent, no additional great-grandparents, and 1 additional
+great-great-grandparent.
+
+import ThreeSixteenthsNum from "./three_sixteenths_num.jpg";
+
+<figure class="seventy">
+  <Image src={ThreeSixteenthsNum} />
+  <figcaption>
+    The binary representation of 13/16 corresponds to a simple way to draw the
+    family tree of someone who is 13/16
+  </figcaption>
+</figure>
+
+### So what about 1/3?
+
+We'll use the trick we've developed and look at the binary representation of the fraction. To write 1/3 in binary, we need to keep writing 1s and 0s forever. Specifically,
+
+<Fraction numerator="1" denominator="3" /> = 0.01010101010...<sub>2</sub> = <Fraction
+  numerator="0"
+  denominator="2"
+/> + <Fraction numerator="1" denominator="4" /> + <Fraction
+  numerator="0"
+  denominator="8"
+/> + <Fraction numerator="1" denominator="16" /> + ...
+
+A wizard who was 1/3 muggle-born would need to have an infinite ancestry!

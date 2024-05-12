@@ -1,16 +1,16 @@
 ---
 type Props = {
-  numerator: string;
-  denominator: string;
+  numerator?: string;
+  denominator?: string;
 };
 
 const { numerator, denominator } = Astro.props;
 ---
 
 <div class="frac">
-  <span>{numerator}</span>
+  <slot name="numerator"><span>{numerator}</span></slot>
   <span class="symbol">/</span>
-  <span class="bottom">{denominator}</span>
+  <slot name="denominator"><span class="bottom">{denominator}</span></slot>
 </div>
 
 <style>

@@ -2,9 +2,18 @@
 
 ---
 
-<script type="text/javascript">
-  function createGame() {
-    function randomlyDistributeBalls() {
+<script>
+  interface Game {
+    boxes: number[];
+    numBoxes: number;
+    ballMultiplier: number;
+    messages: { text: string; type: "error" | "success"; id: number }[];
+    randomlyDistributeBalls: () => void;
+    handleBallDrop: (event: DragEvent) => void;
+    newGame: () => void;
+  }
+  export function createGame(): Game {
+    function randomlyDistributeBalls(this: Game) {
       const boxes = new Array(this.numBoxes).fill(0);
       for (let i = 0; i < this.numBoxes * this.ballMultiplier; i++) {
         const boxIx = Math.floor(Math.random() * this.numBoxes);
@@ -13,19 +22,22 @@
       this.boxes = boxes;
     }
 
-    function reset() {
+    function reset(this: Game) {
       this.randomlyDistributeBalls();
       this.messages = [];
     }
 
-    function handleBallDrop(event) {
-      const target = Number(event.target.closest(".box").dataset.index);
-      const sourceBox = Number(event.dataTransfer.getData("text/plain"));
+    function handleBallDrop(this: Game, event: DragEvent) {
+      const target = Number(
+        (event.target as HTMLElement).closest<HTMLDivElement>(".box")!.dataset
+          .index,
+      );
+      const sourceBox = Number(event.dataTransfer!.getData("text/plain"));
       if (this.boxes[sourceBox] < sourceBox + 1) {
         const message = {
           id: Date.now(),
           text: `Can't move only ${this.boxes[sourceBox]} from box number ${sourceBox + 1}!`,
-          type: "error",
+          type: "error" as const,
         };
         this.messages.push(message);
         setTimeout(() => {
@@ -43,7 +55,11 @@
         }
       });
       if (this.boxes.every((x) => x === this.ballMultiplier)) {
-        this.messages.push({ text: "You did it!", type: "success" });
+        this.messages.push({
+          id: 1,
+          text: "You did it!",
+          type: "success",
+        });
       }
     }
     const game = {
@@ -56,6 +72,7 @@
       newGame: reset,
     };
     game.randomlyDistributeBalls();
+    // @ts-expect-error
     window.game = game;
     return game;
   }

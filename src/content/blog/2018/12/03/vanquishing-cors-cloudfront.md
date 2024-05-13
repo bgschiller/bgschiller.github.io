@@ -1,5 +1,4 @@
 ---
-layout: post
 title: Vanquishing CORS with CloudFront and Lambda@Edge
 category: blog
 tags: [programming, devops, cloudfront, aws]

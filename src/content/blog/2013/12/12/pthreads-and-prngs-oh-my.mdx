@@ -1,5 +1,4 @@
 ---
-layout: post
 title: pthreads and PRNGs, oh my!
 description: "Professors teaching Concurrency classes are fond of saying that when there is a race condition in your code, anything can happen. But can it?"
 category: blog
@@ -30,20 +29,25 @@ print "The winner is:", winner
 
 Depending on which thread most recently set the value of `winner`, a different name is printed out. Either one is possible.
 
-import { Image } from 'astro:assets';
-import dumbledore_gof from './dumbledore_gof.gif';
+import { Image } from "astro:assets";
+import dumbledore_gof from "./dumbledore_gof.gif";
 
 <figure>
-    <Image src={dumbledore_gof} alt="Dumbledore from Goblet of Fire" />
-    <figcaption>“Did you put your name into the Goblet of Fire, Harry?” he asked calmly.</figcaption>
+  <Image src={dumbledore_gof} alt="Dumbledore from Goblet of Fire" />
+  <figcaption>
+    “Did you put your name into the Goblet of Fire, Harry?” he asked calmly.
+  </figcaption>
 </figure>
 
 You might be thinking that whether Harry or Dr. Jones ends up winning would be random. Well, you wouldn't be alone. Austin Amoruso (who I know from WWU and who is currently a developer at [SnapBi.com](http://www.snapbi.com/)) posted the following on facebook:
 
-import pthreads_prng_austin_post from './pthreads_prng_austin_post.png';
+import pthreads_prng_austin_post from "./pthreads_prng_austin_post.png";
 
 <figure>
-   <Image src={pthreads_prng_austin_post} alt="Austin's post reading: Idea for a random generator... Use two threads to set a bool to opposite values then poll the bool for its value. Pretty hard to guess what it's going to be..." />
+  <Image
+    src={pthreads_prng_austin_post}
+    alt="Austin's post reading: Idea for a random generator... Use two threads to set a bool to opposite values then poll the bool for its value. Pretty hard to guess what it's going to be..."
+  />
 </figure>
 
 Concurrency teacher and textbooks will tell us that programs with race conditions are unpredictable. So if we make a program with a race condition, can we use it as a pseudorandom number generator (PRNG). Before we can answer that, I think we need a better definition for unpredictable.
@@ -54,12 +58,16 @@ On [wikipedia](http://en.wikipedia.org/wiki/Pseudorandom_number_generator), you 
 
 That means that no adversary -- a program that, given the earlier bits of a sequence, tries to predict the next one -- should do better than a random guesser.
 
-import xkcd_1210_im_so_random from './xkcd_1210_im_so_random.png';
+import xkcd_1210_im_so_random from "./xkcd_1210_im_so_random.png";
 
 <figure>
-    <Image src={xkcd_1210_im_so_random} alt="XKCD comic 1210: 'I'm so random'. The original alt text reads: In retrospect, it's weird that as a kid I thought completely random outbursts made me seem interesting, given that from an information theory point of view, lexical white noise is just about the opposite of interesting by definition."
-    />
-    <figcaption>Source: <a href="http://xkcd.com/1210/">http://xkcd.com/1210/</a></figcaption>
+  <Image
+    src={xkcd_1210_im_so_random}
+    alt="XKCD comic 1210: 'I'm so random'. The original alt text reads: In retrospect, it's weird that as a kid I thought completely random outbursts made me seem interesting, given that from an information theory point of view, lexical white noise is just about the opposite of interesting by definition."
+  />
+  <figcaption>
+    Source: <a href="http://xkcd.com/1210/">http://xkcd.com/1210/</a>
+  </figcaption>
 </figure>
 
 We'll use a more relaxed criteria today. I want to see if the adversary from [this page](http://www.loper-os.org/bad-at-entropy/manmach.html) can do better than expected.

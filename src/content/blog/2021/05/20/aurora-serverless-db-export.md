@@ -1,6 +1,7 @@
 ---
-layout: post
 title: Aurora Serverless DB Export
+date: 2021-07-08
+description: Save a snapshot of an Aurora Serverless database to an S3 bucket
 category: blog
 tags: [aws, devops, serverless, postgres]
 ---

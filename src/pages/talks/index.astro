@@ -2,18 +2,19 @@
 import { getCollection } from "astro:content";
 import PageLayout from "@layouts/PageLayout.astro";
 import Container from "@components/Container.astro";
-import { PROJECTS } from "@consts";
+import { TALKS } from "@consts";
 
-const projects = await Promise.all(
-  (await getCollection("projects"))
-    .filter((project) => !project.data.draft)
+const talks = await Promise.all(
+  (await getCollection("talks"))
+    .filter((talk) => !("draft" in talk.data && talk.data.draft))
     .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-    .map(async (project) => {
-      const url = new URL(project.data.repoURL);
+    .map(async (talk) => {
+      const url = new URL(talk.data.url, Astro.url.origin);
+      const shortURL = url.hostname + url.pathname + url.search;
       return {
-        ...project,
-        shortURL: `${url.hostname}${url.pathname}`,
-        Content: (await project.render()).Content,
+        ...talk,
+        shortURL,
+        Content: (await talk.render()).Content,
       };
     }),
 );
@@ -31,15 +32,13 @@ function approxDate(date: Date) {
   }
 </style>
 
-<PageLayout title={PROJECTS.TITLE} description={PROJECTS.DESCRIPTION}>
+<PageLayout title={TALKS.TITLE} description={TALKS.DESCRIPTION}>
   <Container>
     <div class="space-y-10">
-      <div class="animate font-semibold text-black dark:text-white">
-        Projects
-      </div>
+      <div class="animate font-semibold text-black dark:text-white">Talks</div>
       <ul class="flex flex-col space-y-4">
         {
-          projects.map((entry) => (
+          talks.map((entry) => (
             <li class="animate project-entry">
               <h2 id={entry.data.title}>
                 <span>
@@ -55,7 +54,7 @@ function approxDate(date: Date) {
                   {approxDate(entry.data.date)}
                 </div>
               </h2>
-              <a href={entry.data.repoURL} class="text-sm opacity-75">
+              <a href={entry.data.url} class="text-sm opacity-75">
                 {entry.shortURL}
               </a>
 

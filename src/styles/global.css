@@ -76,3 +76,7 @@ html #back-to-top {
 html.scrolled #back-to-top {
   @apply opacity-100 pointer-events-auto;
 }
+
+html {
+  scroll-padding-top: 64px;
+}

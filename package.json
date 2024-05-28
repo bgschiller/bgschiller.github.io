@@ -43,5 +43,6 @@
   "engines": {
     "node": ">=20"
   },
-  "engineStrict": true
+  "engineStrict": true,
+  "packageManager": "pnpm@8.5.0+sha512.786922e3fd8620c162bdf6ca1c80e8d663f5bc5bcc8b7f4c87d4f17011d97055a3d3dcc6cc2603d387b4e63ffad2c524275cb2cd202cce4721071a7d3d22fb13"
 }

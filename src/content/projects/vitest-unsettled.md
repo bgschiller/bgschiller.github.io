@@ -2,7 +2,7 @@
 date: Apr 20, 2024
 title: "vitest-unsettled"
 repoURL: "https://github.com/bgschiller/vitest-matchers/tree/main/packages/unsettled"
-summary: "Custom matcher for checking if a Promise is settled (either resolved or rejected)."
+description: "Custom matcher for checking if a Promise is settled (either resolved or rejected)."
 ---
 
 Custom Vitest matcher for checking if a Promise is settled (either resolved or rejected).

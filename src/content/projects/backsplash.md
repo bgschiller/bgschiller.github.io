@@ -2,7 +2,7 @@
 date: May 8, 2020
 title: "backsplash"
 repoURL: "https://github.com/bgschiller/backsplash"
-summary: "Convert between lat-lng, web mercator tiles, and pixel coordinates."
+description: "Convert between lat-lng, web mercator tiles, and pixel coordinates."
 ---
 
 Conversions between lat-lng, web mercator tiles, and pixel coordinates.

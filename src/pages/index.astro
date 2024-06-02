@@ -19,7 +19,6 @@ const projects = await Promise.all(
     .slice(0, SITE.NUM_PROJECTS_ON_HOMEPAGE)
     .map(async (item) => {
       const { Content } = await item.render();
-      const url = new URL(item.data.repoURL);
       return { ...item, Content };
     }),
 );
@@ -136,7 +135,7 @@ const talks = await Promise.all(
                 >
                   {entry.data.title}
                 </a>
-                <article>{entry.data.summary}</article>
+                <article>{entry.data.description}</article>
               </li>
             ))
           }

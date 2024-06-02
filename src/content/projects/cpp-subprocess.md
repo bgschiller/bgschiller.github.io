@@ -2,7 +2,7 @@
 date: Nov 17, 2021
 title: "cpp-subprocess"
 repoURL: "https://github.com/bgschiller/cpp-subprocess"
-summary: "A C++ library for safely invoking external commands and pipelines."
+description: "A C++ library for safely invoking external commands and pipelines."
 ---
 
 A C++ library for safely (no exceptions!) invoking external commands and pipelines. 5x better than popen.h or your money back.

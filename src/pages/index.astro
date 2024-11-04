@@ -9,6 +9,7 @@ import { SITE, HOME, SOCIALS } from "@consts";
 
 const blog = (await getCollection("blog"))
   .filter((post) => !post.data.draft)
+  .filter((post) => !post.data.unlisted)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
   .slice(0, SITE.NUM_POSTS_ON_HOMEPAGE);
 

@@ -84,13 +84,26 @@ Let's think about constraints as constraining the value of this `X` variable, an
 =CONSTRAIN(LENGTH(X) == 1)
 ```
 
-That defines a constraint for one talk. To apply it to every talk, we can copy-paste the formula down the column. This is how looping works in spreadsheets!
+That defines a constraint for one talk. To apply it to every talk, we can copy-paste the formula down the column. This is how we can accomplish looping in spreadsheets!
 
 Some of the talks are 50 minutes long, so they actually need two consecutive time slots. Leaving aside the 'consecutive' part, let's adjust the formula to allow for this:
 
 ```scala
 =CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2)))
 ```
+
+This uses the `RC` notation to refer to the cell in the same row and one column to the left. The `IF` function checks the duration of the talk and sets the constraint to 1 if it's 20 minutes and 2 if it's 50 minutes.
+
+| Title                                                                            | Duration | Schedule for one time slot (two for 50m talks)           |
+| -------------------------------------------------------------------------------- | -------- | -------------------------------------------------------- |
+| Beyond Syntax: Designing Languages for Human Cognition                           | 20m      | `=CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2))` |
+| From Models to Applications: Practical AI for the Everyday Developer             | 20m      | `=CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2))` |
+| Ethical AI: Balancing Innovation with Responsibility in Machine Learning Systems | 50m      | `=CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2))` |
+| Transformers Unleashed: Revolutionizing NLP Beyond Text                          | 50m      | `=CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2))` |
+| Rethinking State Management: Beyond Redux in Modern Web Apps                     | 50m      | `=CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2))` |
+| WebAssembly: Unlocking Native Performance in the Browser                         | 20m      | `=CONSTRAIN(LENGTH(X) == IF(EQUAL(RC[-1], "20m", 1, 2))` |
+
+#### Constraints on the combination of two tables
 
 Most of the constraints make sense at the intersection of two tables. For example, we might want to make sure that no two talks are scheduled in the same room at the same time. For that, we'd need to create a view reflecting the cross-product of venues and time slots.
 
@@ -110,6 +123,48 @@ Given this view, we can write a simple formula that looks at the `X` variables f
 Copy-pasting this across the grid will enforce that venue is double-booked for any time slot.
 
 ![A table of venues X times, as above. Each interior cell has the LENGTH(X) <= 1 formula](./formula-no-more-than-one-talk-in-a-room.png)
+
+#### Revisiting the consecutive time slots constraint
+
+Now that we've explored constraints on the combination of two tables, we can revisit the "50 minute talks need two consecutive time slots" constraint. We can write a formula that creates a constraint relating a pair of time slots.
+
+We'd like to say something like
+
+> If the talk is 50 minutes, then one of the following must be true:
+>
+> - The talk is scheduled for this time slot and the next time slot
+> - The talk is scheduled for this time slot and the previous, or
+> - The talk is _not_ scheduled for this time slot
+
+Imagine we have the following table:
+
+| Title                                                                            | Duration | 9:00am | 9:30am | 10:00am | 10:30am | 11:00am | .... |
+| -------------------------------------------------------------------------------- | -------- | ------ | ------ | ------- | ------- | ------- | ---- |
+| Beyond Syntax: Designing Languages for Human Cognition                           | 20m      |
+| From Models to Applications: Practical AI for the Everyday Developer             | 20m      |
+| Ethical AI: Balancing Innovation with Responsibility in Machine Learning Systems | 50m      |
+| Transformers Unleashed: Revolutionizing NLP Beyond Text                          | 50m      |
+| Rethinking State Management: Beyond Redux in Modern Web Apps                     | 50m      |
+| WebAssembly: Unlocking Native Performance in the Browser                         | 20m      |
+
+Let's try and build each part of that formula, as it would appear in the 9:30am cell for the "Beyond Syntax" talk (we'll leave the 9am column blank because it doesn't have a previous time slot, so the pattern breaks).
+
+"If the talk is 50 minutes" can be written as `=IF(EQUAL($B2, "50m"), ..something..)`. Here, we use `$B` to always refer to the duration column, rather than implying "the column a couple to the left"
+
+"The talk is scheduled for this timeslot and the next" is written `EQUAL(X, RC[1])`, and "the talk is scheduled for this timeslot and the previous" is `EQUAL(X, RC[-1])`. We can combine these with an `OR` function.
+
+Finally, "the talk is not scheduled for this time slot" is `EQUAL(LENGTH(X), 0)`. That is, there are no (talk, venue, timeslot) triples where the talk is "Beyond Syntax" and the timeslot is "9:30am". Putting this all together, we'd have:
+
+```scala
+=IF(EQUAL($B2, "50m"), // Only consider 50m talks
+  CONSTRAIN(OR( // one of the following must be true
+    EQUAL(X, RC[1]), // the talk is scheduled for this time slot and the next
+    EQUAL(X, RC[-1]), // the talk is scheduled for this time slot and the previous
+    EQUAL(LENGTH(X), 0) // the talk is not scheduled for this time slot
+)))
+```
+
+Copying this formula across the grid will enforce the constraint that 50 minute talks are scheduled in consecutive time slots. We're okay skipping the 9am column and the last column because the column just next door will cover it.
 
 ## Digging into the formula language
 

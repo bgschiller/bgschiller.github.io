@@ -43,40 +43,46 @@ This seems general enough to tackle a wide variety of problems, though it's less
 Let's use the rowing outing problem as an example. If we wanted to solve this by hand, we might start by laying out a grid of rowing positions and outing days, then start writing names into place.
 
 |        | Mon | Tue | Wed | Thu |
-| ------ | --- | --- | --- | --- |
+| :----: | :-: | :-: | :-: | :-: |
 | Coach  |     |     |     |     |
-| Cox    |     |     |     |     |
-| Bow    |     |     |     |     |
+|  Cox   |     |     |     |     |
+|  Bow   |     |     |     |     |
 | Stroke |     |     |     |     |
 
 You might have some erasing to do as you go along. Maybe Steven can't make it to Tuesday, and would prefer not to row on two consecutive days. You might pencil him in for Monday and Wednesday, making a note that you could move him from Wednesday to Thursday if you needed.
 
-|        | Mon    | Tue | Wed                     | Thu |
-| ------ | ------ | --- | ----------------------- | --- |
+|        |  Mon   | Tue |           Wed           | Thu |
+| :----: | :----: | :-: | :---------------------: | :-: |
 | Coach  |        |     |                         |     |
-| Cox    |        |     |                         |     |
-| Bow    | Steven |     | Steven (or move to Thu) |     |
+|  Cox   |        |     |                         |     |
+|  Bow   | Steven |     | Steven (or move to Thu) |     |
 | Stroke |        |     |                         |     |
 
 You might also add a note showing who is available for each of the positions.
 
-|        | Mon    | Tue | Wed                     | Thu | who?                                              |
-| ------ | ------ | --- | ----------------------- | --- | ------------------------------------------------- |
-| Coach  |        |     |                         |     | Stacy<br>Donovan                                  |
-| Cox    |        |     |                         |     | Grace<br>Quinn                                    |
-| Bow    | Steven |     | Steven (or move to Thu) |     | Jack<br>Karen<br>Liam<br>Ethan<br>Carla<br>Steven |
-| Stroke |        |     |                         |     | Noah<br>Peter<br>Mia<br>Aisha<br>Carlos<br>Jack   |
+|        |  Mon   | Tue |           Wed           | Thu |                       who?                        |
+| :----: | :----: | :-: | :---------------------: | :-: | :-----------------------------------------------: |
+| Coach  |        |     |                         |     |                 Stacy<br>Donovan                  |
+|  Cox   |        |     |                         |     |                  Grace<br>Quinn                   |
+|  Bow   | Steven |     | Steven (or move to Thu) |     | Jack<br>Karen<br>Liam<br>Ethan<br>Carla<br>Steven |
+| Stroke |        |     |                         |     |  Noah<br>Peter<br>Mia<br>Aisha<br>Carlos<br>Jack  |
 
 You could go on adding notes like this, trying to make sure that everyone is happy with the schedule like you're solving a Sudoku puzzle. But what if you could make those notes into computable rules? The computer could propose solutions, and you could tweak them and see updated proposals in response.
 
 The idea I have is that every cell can accept some combination of
 
 - a value (like a name, or a list of names)
-- a formula that constrains the value (like "if the cell to the left contains 'Steven', this cell may not" or "each name may appear at most once in a column—no one can row two positions on the same outing")
-- A formula that expresses a preference (like, "Jack prefers to row Bow, but is willing to row Stroke") _I don't know anything about rowing, is this reasonable?_
+- a formula that constrains the value. For example,
+  - "if the cell to the left contains 'Steven', this cell may not", or
+  - "each name may appear at most once in a column—no one can row two positions on the same outing")
+- A formula that expresses a preference. For example,
+  - "Jack prefers to row Bow, but is willing to row Stroke" _I don't know anything about rowing, is this reasonable?_
+  - Kathleen would like to take vacation during the first week of July
 - A computer-proposed value consistent with the constraints
 
 ## Aside: UCSF Medical Residency Scheduling
+
+_Question for early readers: is this section useful? Should I just cut it?_
 
 After I wrote my first post on scheduling medical rotations in a residency, I got an email from the chief resident at the pediatrics residency at UCSF. They were working on the same problem, but for around 70 residents (I originally wrote about a residency with 12 people). They hired me to work on the problem with them.
 
@@ -98,7 +104,7 @@ Spreadsheets are the most powerful end-user programming tool in the world. Nearl
 
 ### Co-located data and rules
 
-Traditional software abstracts over the data, storing it separately in a file or database or API. Only the computation is described in the code. Spreadsheets, on the other hand, have the data and the computation in the same place. I suspect this is more intuitive for people, as they're familiar with the data—those are the names of people or rooms or shifts or something from the domain.
+Traditional software abstracts over the data, storing it separately in a file or database or API. Only the computation is described in the code. Spreadsheets, on the other hand, have the data and the computation in the same place. I suspect this is more intuitive for people, as they're familiar with the data—those are the names of people or rooms or shifts: something from the domain.
 
 Laying out the data also offers a tidy way to locate the rules. I'll show an example using the [conference talk scheduling problem](/blog/2024/11/07/scheduling-conference-talks-lp) I wrote about last week. Here's a portion of the "talks" table from that problem:
 
@@ -113,7 +119,7 @@ Laying out the data also offers a tidy way to locate the rules. I'll show an exa
 
 One rule we want to apply is that each talk should be scheduled exactly once. In a spreadsheet there's a natural place to put this rule: in a column to the right of the table.
 
-How might this look? Thinking about the indicator variables from [above](#formulating-the-problem-as-a-linear-program), we want each row to be associated with the set of indicator variables that are "on" for that row's value. For the talks table, imagine there's a magic variable `X` that consists of a set of all `(venue, time_slot)` pairs associated with each talk. So for the "Beyond Syntax" talk, if `X` is `{(Madrona, 9:30), (Madrona, 10:00), (Fir, 12:00)}`, we understand that the talk is scheduled in the Madrona conference room at 9:30 and 10:00, and in Fir at 12:00.
+How might this look? Thinking about the indicator variables from [above](#formulating-the-problems-as-linear-programs), we want each row to be associated with the set of indicator variables that are "on" for that row's value. For the talks table, imagine there's a magic variable `X` that consists of a set of all `(venue, time_slot)` pairs associated with each talk. So for the "Beyond Syntax" talk, if `X` is `{(Madrona, 9:30), (Madrona, 10:00), (Fir, 12:00)}`, we understand that the "Beyond Syntax" talk is scheduled in the Madrona conference room at 9:30 and 10:00, and in Fir at 12:00.
 
 Let's think about constraints as constraining the value of this `X` variable, and try to write a rule that says, "each talk is scheduled exactly once". We can write this as a formula (with made-up functions `CONSTRAIN` and `LENGTH`) in a cell to the right of the table:
 
@@ -157,7 +163,7 @@ Given this view, we can write a simple formula that looks at the `X` variables f
 =CONSTRAIN(LENGTH(X) <= 1)
 ```
 
-Copy-pasting this across the grid will enforce that venue is double-booked for any time slot.
+Copy-pasting this across the grid will enforce that no venue is double-booked for any time slot.
 
 ![A table of venues X times, as above. Each interior cell has the LENGTH(X) <= 1 formula](./formula-no-more-than-one-talk-in-a-room.png)
 
@@ -239,7 +245,7 @@ I don't know how to make this happen in a spreadsheet. It probably won't work th
 
 ### Attributes of implicit variables
 
-Looking back on the consecutive time slots constraint, we cheated a little bit. Our rule depends on whether the talk is 50 minutes long, so we just repeated that column next to the talk name to make it easy to refer to. In a larger problem, like the UCSF residency program, we might have enough columns of data to make this unwieldy. Here are some of the data associated with each resident from that problem:
+Looking back on the consecutive time slots constraint, we cheated a little bit. Our rule depends on whether the talk is 50 minutes long, so we repeated that column next to the talk name to make it easy to refer to. In a larger problem, like the UCSF residency program, we might have enough columns of data to make this unwieldy. Here are some of the data associated with each resident from that problem:
 
 - Class in 2023-24 academic year—either R1, R2, R3, FT (fast track), or Gen (Genetics track)
 - whether or not the resident applied to be chief resident

@@ -1,6 +1,6 @@
 ---
 title: Constraint Solving in Spreadsheets
-date: 2024-12-12
+date: 2024-12-02
 description: Can we create a tool that allows users to specify constraints in a spreadsheet and then solve them?
 category: blog
 tags: [programming, optimization, linear programming, user-interface]

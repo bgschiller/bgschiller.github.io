@@ -55,9 +55,22 @@ article {
   }
 }
 
+/** Turn off some default styles. Someday I'll rewrite this to rip out the tailwind stuff... */
 article
   :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   font-style: unset;
+}
+article
+  :where(blockquote p:first-of-type):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::before {
+  content: unset;
+}
+article
+  :where(blockquote p:last-of-type):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::after {
+  content: unset;
 }
 
 .animate {

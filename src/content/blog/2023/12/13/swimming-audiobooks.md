@@ -6,6 +6,8 @@ category: blog
 tags: [programming, swimming, books]
 ---
 
+> **Update Jan 13, 2025** I turned my jumble of scripts into an actual app. [Take a look](/blog/2025/01/13/sync-and-swim-app/).
+
 I've been swimming a lot recently. I find swimming to be pretty boring, so I've been listening to music with swim headphones to occupy my mind. A few weeks ago, my cheapo headphones were stolen from the side of the pool. To replace them, I bought some Shokz OpenSwim headphones. _Wow_, these are so much better.
 
 The audio quality on the old ones was bad, barely enough to hum along to songs I already knew. The Shokz are great! They are as good as the bone-conduction headphones I use on dry land. This made me wonder: could I listen to audiobooks with these?

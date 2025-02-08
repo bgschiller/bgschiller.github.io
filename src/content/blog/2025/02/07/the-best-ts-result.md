@@ -49,7 +49,7 @@ Result.do((unwrap) => {
 });
 ```
 
-Surprisingly, we can still do this with full type-safety. Here's what the implementation looks like:
+Surprisingly, we can still do this with full type-safety. The trick is to allow ourselves to throw an exception, since it's the only way for `unwrap` to halt execution through the function, then immediately catch it. Here's what the implementation looks like:
 
 ```ts
 type Unwrap<E> = <T>(result: Result<T, E>) => T;
@@ -96,46 +96,25 @@ class ParseError extends Error {
   kind = "parse error" as const;
 }
 function divide(a: number, b: number): Result<number, DivideByZeroError> {
-  return Result.do((unwrap) => {
-    if (b === 0) {
-      return { ok: false, error: new DivideByZeroError() };
-    }
-    return a / b;
-  });
+  // ...
 }
 
 function parseNumber(num: string): Result<number, ParseError> {
-  const parsed = parseFloat(num);
-  if (isNaN(parsed)) {
-    return { ok: false, error: new ParseError(num) };
-  }
-  return { ok: true, value: parsed };
+  // ...
 }
 
-function evaluate(expression: string): Result<number, EvalError> {
+function evaluate(
+  expression: string,
+): Result<number, EvalError | DivideByZeroError> {
   return Result.do((unwrap) => {
     const [a, op, b] = expression.split(" ");
-    // red squiggly here: forgot to list ParseError as a possible
+    // red squiggly here: forgot to list `ParseError` as a possible
     // error type in the return type of evaluate
     const numA = unwrap(parseNumber(a));
-    // same here. `unwrap` limits the error types it accepts to
-    // the ones the function is allowed to return
+    // This one is okay though. `unwrap` limits the error types it
+    // accepts to the ones the function is allowed to return
     const numB = unwrap(parseNumber(b));
-    switch (op) {
-      case "+":
-        return numA + numB;
-      case "-":
-        return numA - numB;
-      case "*":
-        return numA * numB;
-      case "/":
-        return divide(numA, numB);
-      default:
-        return {
-          ok: false,
-          error: new EvalError("unknown operator " + op),
-        };
-    }
+    // ...
   });
 }
 ```

@@ -10,7 +10,7 @@ Thrown Errors don't appear in the signature of TypeScript functions. Many people
 
 <!-- prettier-ignore -->
 ```ts
-type Result<T, E> = 
+type Result<T, E> =
   | { ok: true, value: T }
   | { ok: false, error: E };
 ```
@@ -124,3 +124,41 @@ This does for the `Result` type what `async`/`await` does for promises—it's Ha
 Speaking of promises, the same trick works for `AsyncResult`, a `Result` that is wrapped in a `Promise`.
 
 I haven't seen this in any TypeScript codebases yet (have you?). This is part of an internal library at work, but I'd like to open source it if we can get permission. I want to use it everywhere!
+
+## Updates after field-testing
+
+After using this for about a week, we've made a couple of changes.
+
+First, we noticed that using `unwrap` in a second scope (like in a nested function) is dangerous. Consider this code:
+
+```ts
+function lazyAdd(expression: string): Result<() => number, EvalError> {
+  return Result.do((unwrap) => {
+    const [a, op, b] = expression.split(" ");
+
+    return () => {
+      // close over the `unwrap` function
+      const numA = unwrap(parseNumber(a));
+      const numB = unwrap(parseNumber(b));
+      return numA + numB;
+    };
+  });
+}
+
+const add = lazyAdd("1 + 2");
+const result = add(); // 💥 throws an error that's not caught
+// by `Result.do` because that function has already returned
+```
+
+To fix this, we added an eslint rule that disallows using `unwrap` unless it was defined in the current scope.
+
+Second, we updated the signature to require returning a `Result` from the function passed to `Result.do`. This makes it easier to return errors from the function. For example,
+
+```ts
+// before, it's weird to unwrap an error we're making on the spot
+unwrap(Result.failure(new EvalError("divide by zero")));
+// after, we can just return the failure
+return Result.failure(new EvalError("divide by zero"));
+```
+
+This is also more consistent with most flatMap signatures in functional programming.

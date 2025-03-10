@@ -1,7 +1,7 @@
 ---
 title: Privacy-preserving Analytics with Counterscale
 date: 2025-03-08
-description:
+description: Using self-hosted Counterscale to track page views on my blog
 category: blog
 tags: [blog, analytics, counterscale, serverless]
 ---

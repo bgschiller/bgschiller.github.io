@@ -1,0 +1,409 @@
+---
+title: Inferred Config for Nx Monorepos
+date: 2025-06-04
+description: Nx supports inferring tasks by looking at config files, but that's backwards. Better to infer the configs themselves.
+category: blog
+tags: [nodejs, javascript, nx, monorepo, configuration, tools, development]
+---
+
+import Warning from '../../../../../components/Warning.astro';
+
+Nx supports inferring tasks by looking at config files. Briefly, that means that if you have a webpack.config.js file in a package, the `@nx/webpack` plugin will automatically supply `build`, `serve` and `preview` tasks for that package.
+
+But that's backwards. Describing the tasks is rarely the hard part. The problem I would prefer to solve is having to maintain config files for each package, often differing only slightly between one another.
+
+Let's borrow the mechanism of Inferred Tasks, but use it to generate configs at the time the Nx project graph is resolved. The big idea looks like this:
+
+1. Create an Nx plugin within your monorepo
+2. Use the Nx well-known export `createNodesV2` to declare that we want to infer some tasks for any package that includes a package.json file (probably all of them).
+3. In the `createNodesV2` function, read the package.json file and build tasks around generated config objects.
+
+This post assumes you're using a pnpm workspace, but it will likely work similarly regardless.
+
+Also, I'd like to acknowledge Rahul Kadyan, who set this up in the monorepo I work in at Grammarly. Most of the code is his work, I'm just writing to share and explain it.
+
+## Create an Nx plugin
+
+This can be just another package within your monorepo. I work in a couple of monorepos at work (I know, there's irony in having two "mono" repos. We're planning on consolidating them soon). One has `packages/nx-plugin` and the other has `libs/shared-nx-plugin`. You might already have something like it, or you can make a new package.
+
+If you're making a new package, you can use `npx create-nx-plugin my-plugin` to scaffold a plugin, but it always wants to put the plugin in a brand new Nx workspace, so you'll want to copy it back to your own.
+
+Also, be sure to:
+
+1. Add a `workspace:*` dependency on the package to your top-level package.json. This makes it visible for the next step.
+2. List the package in your `nx.json` file's `plugins` array.
+
+For me that looks something like this
+
+```diff
+diff --git i/package.json w/package.json
+--- i/nx.json
++++ w/nx.json
+@@ -5,7 +5,7 @@
+   },
+   "defaultBase": "main",
+-  "plugins": ["@nx/vite"],
++  "plugins": ["@grammarly/nx-plugin", "@nx/vite"],
+   "parallel": 20,
+   "tasksRunnerOptions": {
+     "default": {
+diff --git i/package.json w/package.json
+--- i/package.json
++++ w/package.json
+@@ -9,7 +9,6 @@
+   "devDependencies": {
+     "@changesets/cli": "catalog:",
+     "@grammarly/eslint-config": "workspace:^",
+-    "@grammarly/nx-plugin": "workspace:^",
+     "@grammarly/nx-task-runner": "catalog:",
+     "@grammarly/tsconfig": "workspace:^",
+```
+
+## export `createNodesV2` and `name` from your new plugin
+
+Add the following to `nx-plugin/src/index.ts`:
+
+```ts
+import pluginPackageJson from "../package.json" with { type: "json" };
+import { logger, type CreateNodesV2 } from "@nx/devkit";
+
+export const name = pluginPackageJson.name;
+
+export const createNodesV2: CreateNodesV2 = [
+  "**/package.json",
+  (projectConfigurationFiles, _options, context) => {
+    // nothing so far
+    return [];
+  },
+];
+```
+
+The first element in that `createNodesV2` pair is a glob pattern indicating which files should be gathered for this function. Any package that has a `package.json` file will match this glob, so `projectConfigurationFiles` will be an array of paths to each package.json in the workspace.
+
+Try running `pnpm exec nx list`. If everything went well, you should see your plugin listed under "Local workspace plugins" with a "project-inference" label:
+
+```
+$ pnpm nx list
+ NX   Local workspace plugins:
+
+@grammarly/nx-plugin (executors,generators,graph-extension,project-inference)
+my-plugin (generators,graph-extension,project-inference)
+```
+
+<Warning variant="info">
+Nx doesn't seem to notice when a local plugin is changed. You may find that you need to run `pnpm exec nx reset` to get it to pick up the changes.
+</Warning>
+
+## Build some config objects
+
+The `createNodesV2` contract says that we can return an array of pairs `[filename, result]`, where `filename` is one of the paths from `projectConfigurationFiles` and `result` contains the `ProjectConfiguration` object we've derived by looking at that file. That's a little abstract, so let's look at a small example.
+
+```ts
+export const createNodesV2: CreateNodesV2 = [
+  "**/package.json",
+  (projectConfigurationFiles, _options, _context) => {
+    return projectConfigurationFiles.flatMap((file) => {
+      const packageJson = readJsonFile(file);
+      const command = `echo congrats on reaching version ${packageJson.version}, ${packageJson.name}!`;
+
+      const result: CreateNodesResult = {
+        projects: {
+          [path.dirname(file)]: {
+            name: file,
+            targets: {
+              congratulate: {
+                executor: "nx:run-commands",
+                options: {
+                  command,
+                },
+              },
+            },
+          },
+        },
+      };
+      return [[file, result] as const];
+    });
+  },
+];
+```
+
+Now run `pnpm exec nx run-many --verbose -t congratulate` and you should see a message for each package in your workspace.
+
+## Conditionally add tasks with tags
+
+I like to use tags to opt-in to tasks. In the package.json for each package, I add tags under the `nx` key indicating which tasks I want to have added. Let's start with one for vitest.
+
+```json
+{
+  "name": "@my-org/my-package",
+  "version": "1.0.0",
+  "nx": {
+    "tags": ["vitest"]
+  }
+}
+```
+
+Then we can modify our plugin to look for that tag and only add the task if it exists. First, let's update our `createNodesV2` function to rely on a new function `getTargetsByTags` that we'll write in a moment.
+
+```ts
+projectConfigurationFiles.flatMap((file) => {
+  const packageJson = readJsonFile<PackageJson>(file);
+  const tags = packageJson.nx?.tags ?? [];
+
+  const targets = getTargetsByTags(tags);
+  if (Object.keys(targets).length === 0) return [];
+  const result = {
+    projects: {
+      [path.dirname(file)]: {
+        name: file,
+        projectType: parent === "libs" ? "library" : "application",
+        targets,
+      },
+    },
+  } satisfies CreateNodesResult;
+
+  return [[file, result]];
+});
+```
+
+Now here's a possible implementation of `getTargetsByTags`:
+
+```ts
+function getTargetsByTags(tags: string[]): Record<string, TargetConfiguration> {
+  const targets: Record<string, TargetConfiguration> = {};
+  for (const tag of tags) {
+    if (tag === "vitest") {
+      targets.test = createVitestTarget();
+    }
+  }
+  return targets;
+}
+```
+
+The implementation of `createVitestTarget` isn't too interesting, but here it is for completeness. Notice that it relies on a `vitest.config.mts` file located at the workspace root. Every package will share this one config.
+
+```ts
+function createVitestTarget(): TargetConfiguration {
+  return {
+    executor: "@nx/vite:test",
+    dependsOn: ["^build"],
+    inputs: [
+      "{workspaceRoot}/vitest.config.mts",
+      "{projectRoot}/package.json",
+      "{projectRoot}/src/**/*.{ts,tsx}",
+      "{projectRoot}/test/**/*.{ts,tsx}",
+    ],
+    options: {
+      configFile: "{workspaceRoot}/vitest.config.mts",
+    },
+  };
+}
+```
+
+At this point, we're actually not doing anything all that special. This all could have been done using `targetDefaults` in `nx.json`. But wait-this next bit is where we get the big payoff.
+
+## Learning the entry points from package.json
+
+The package.json files in each package likely have all the information we need to generate a rollup config. The main way the packages in my monorepo differ is in what entry points they have. Your package.json should list those entry points under the "exports", "main", or "module" fields. Let's inspect those fields to pull out a list of entry points. We'll say that `BuildOptions` is a map from input file name to the combo of output filename and module type:
+
+```ts
+type BuildOutput = {
+  file: string;
+  type: "commonjs" | "esm" | "auto";
+};
+type BuildOptions = Record<string, Array<BuildOutput>>;
+```
+
+Now we need a function that translates from the package.json fields into `BuildOptions`. Here are some examples to help understand the transformation.
+
+```ts
+// "main" field is for commonjs
+{ main: 'dist/index.js'}
+// becomes...
+{ 'src/index.ts': [{ type: 'commonjs', file: 'dist/index.js' }] }
+
+// exports assigns externally facing names to specific files
+{
+  exports: {
+    '.': './dist/index.js',
+    './cli': './dist/out.js',
+  },
+}
+// becomes...
+{
+  './dist/index.js': [{ type: 'auto', file: 'dist/index.js' }],
+  './dist/out.js': [{ type: 'auto', file: 'dist/out.js' }],
+}
+```
+
+The exact code to make this transformation isn't particularly interesting. You can borrow my implementation: [getInferredBuildOptions.ts](./getInferredBuildOptions.ts)
+
+## Building a rollup config
+
+Now that we have our entry points, write a function to build a rollup config for each one. It might look something like this:
+
+```ts
+function createRollupOptions(
+  workspaceDir: string,
+  packageDir: string,
+  packageJson: PackageJson,
+  executorOptions: RollupExecutorOptions,
+) {
+  const buildOptions = getInferredBuildOptions(packageJson);
+  const inputs = Object.entries(buildOptions);
+
+  const outputDir = path.join(packageDir, "dist");
+
+  return inputs.map(([input, outputs]) => ({
+    input: path.join(packageDir, input),
+    plugins: [
+      pluginNodeResolve(),
+      pluginReplace({
+        preventAssignment: true,
+        values: {
+          "process.env.NODE_ENV": JSON.stringify(
+            executorOptions.mode ?? "production",
+          ),
+        },
+      }),
+      pluginCommonJS(),
+      // whatever other plugins you need
+    ],
+    external: createExternalOption(packageJson),
+    treeshake: { preset: "recommended" },
+    output: createOutputOptions(
+      packageDir,
+      packageJson,
+      outputs,
+      executorOptions,
+    ),
+  }));
+}
+```
+
+The implementation of `createExternalOption` and `createExternalOptions` is left as an exercise for the reader.
+
+Nah, just kidding. Take a look at [config.ts](./config.ts) for a complete implementation of `createRollupOptions`, including definitions for `createExternalOption` and `createOutputOptions`.
+
+This rests on the assumption that we're okay using a mostly consistent set of plugins across the whole monorepo. You can probably do something else clever with tags if that doesn't hold for you.
+
+## Creating an executor
+
+The standard `@nx/rollup:rollup` executor expects the config to be provided in a different way-mostly via executor options and "a path to a function which takes a rollup config and returns and updated rollup config".
+
+Luckily, Nx executors are pretty straightforward to write. Here's the bones of one:
+
+```ts
+export default async function rollupExecutor(
+  options: RollupExecutorOptions,
+  context: ExecutorContext,
+) {
+  const projectDir = getProjectDir(context);
+
+  const outDir = path.join(projectDir, "dist");
+
+  if (options.clean) {
+    logger.verbose(`Cleaning dist directory.`);
+    await fs.rm(outDir, { recursive: true, force: true });
+  }
+
+  logger.info(
+    `Building ${options.buildType} bundle${options.preserveModules ? " with modules" : ""}${options.packageJsonPath ? ` from ${options.packageJsonPath}` : ""}...`,
+  );
+
+  try {
+    await buildPackage(context.root, projectDir, options);
+  } catch (error) {
+    logger.error(error);
+    return { success: false };
+  }
+
+  return { success: true };
+}
+
+async function buildPackage(
+  workspaceDir: string,
+  packageDir: string,
+  options: RollupExecutorOptions,
+) {
+  const packageJsonFile = path.join(
+    packageDir,
+    options.packageJsonPath ?? "package.json",
+  );
+  const packageJson = await readPackageJson(packageJsonFile);
+  const configs = createRollupOptions(
+    workspaceDir,
+    packageDir,
+    packageJson,
+    options,
+  );
+
+  for (const { output: outputs, ...config } of configs) {
+    logger.verbose(
+      `Building ${path.relative(packageDir, String(config.input))} -> dist/...`,
+    );
+    const bundle = await rollup.rollup(config);
+
+    for (const output of outputs) {
+      const result = await bundle.write(output);
+      result.output.forEach((output) => {
+        logger.verbose(`  -> ${output.fileName}`);
+      });
+    }
+  }
+}
+```
+
+## Using the new executor
+
+Back in the `getTargetsByTags` function, we can now add a target to the project configuration.
+
+```ts
+if (tags.includes("rollup")) {
+  targets.build = createRollupTarget(packageJson);
+}
+
+// ...
+function createRollupTarget(packageJson: PackageJson): TargetConfiguration {
+    const srcDir = path.posix.join('{projectRoot}', 'src')
+  const outDir = path.posix.join('{projectRoot}', 'dist')
+  const reportsDir = path.posix.join('{projectRoot}', 'reports')
+  const isPublicPackage = !packageJson.private
+  return {
+    executor: "@grammarly/nx-plugin:rollup",
+    options: {
+      clean: true,
+      buildType: 'release',
+      mode: "production",
+      preserveModules: !isPublicPackage,
+      transformModuleSyntax: isPublicPackage,
+    },
+    configurations: {
+      development: {
+        buildType: 'debug',
+      },
+      production: {
+        buildType: 'release',
+      },
+    },
+    defaultConfiguration: 'development',
+    dependsOn: ['^build'],
+    inputs: [
+      `${srcDir}/**/*`,
+      '{projectRoot}/tsconfig.json',
+      '{projectRoot}/package.json',
+    ],
+    outputs: [outDir],
+    cache: true,
+  };
+}
+```
+
+## Conclusion
+
+So what have we done? That was a lot of work; what do we get out of it?
+
+- **Reduced Duplication**: By inferring configuration from package.json, you eliminate the need to duplicate build settings across multiple packages, making maintenance easier.
+- **Consistency**: Ensures that all packages follow the same build and test patterns, reducing the risk of configuration drift.
+- **Scalability**: As your monorepo grows, adding new packages becomes simpler since they automatically inherit the inferred configuration.
+- **Flexibility**: The use of tags allows for conditional task generation, enabling packages to opt-in to specific tasks without modifying the core configuration.

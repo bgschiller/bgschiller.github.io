@@ -403,7 +403,7 @@ function createRollupTarget(packageJson: PackageJson): TargetConfiguration {
 
 So what have we done? That was a lot of work; what do we get out of it?
 
-- **Reduced Duplication**: By inferring configuration from package.json, you eliminate the need to duplicate build settings across multiple packages, making maintenance easier.
+- **Reduced Duplication**: By inferring configuration from package.json, we eliminate the need to duplicate build settings across multiple packages, making maintenance easier.
 - **Consistency**: Ensures that all packages follow the same build and test patterns, reducing the risk of configuration drift.
-- **Scalability**: As your monorepo grows, adding new packages becomes simpler since they automatically inherit the inferred configuration.
-- **Flexibility**: The use of tags allows for conditional task generation, enabling packages to opt-in to specific tasks without modifying the core configuration.
+- **Scalability**: As the monorepo grows, adding new packages becomes simpler since they automatically inherit the inferred configuration.
+- **Flexibility**: The use of tags allows packages to opt-in to specific tasks without modifying the core configuration.

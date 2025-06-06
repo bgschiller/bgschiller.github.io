@@ -24,6 +24,45 @@ If you want to skip ahead, you can find the code in [inferred-nx-tasks](https://
 
 Also, I'd like to acknowledge [Rahul Kadyan](https://znck.dev), who set this up in the monorepo I work in at Grammarly. Most of the code is his work, I'm just writing to share and explain it.
 
+## The Problem: Config Duplication
+
+In a typical monorepo, you might have:
+
+```
+packages/
+├── package-a/
+│   ├── rollup.config.js
+│   ├── vitest.config.ts
+│   ├── project.json
+│   └── project.json
+├── package-b/
+│   ├── rollup.config.js # 90% identical to package-a
+│   ├── vitest.config.ts # 90% identical to package-a
+│   ├── project.json # 100% identical to package-a
+│   └── package.json
+└── package-c/
+    ├── rollup.config.js # 90% identical to package-a
+    ├── vitest.config.ts # 90% identical to package-a
+    ├── project.json
+    └── package.json
+```
+
+With this structure, you can avoid all the duplication by using a config generated for each package.
+
+```
+packages/
+├── package-a/
+│   └── package.json (with nx.tags)
+├── package-b/
+│   └── package.json (with nx.tags)
+├── package-c/
+│   └── package.json (with nx.tags)
+├── my-nx-plugin/
+│   └── src/
+│       └── index.ts (generates rollup config)
+└── vitest.config.mjs # shared config
+```
+
 ## Create an Nx plugin
 
 This can be just another package within your monorepo. I work in a couple of monorepos at work (I know, there's irony in having two "mono" repos. We're planning on consolidating them soon). One has `packages/nx-plugin` and the other has `libs/shared-nx-plugin`. You might already have something like it, or you can make a new package.
@@ -70,15 +109,18 @@ import { logger, type CreateNodesV2 } from "@nx/devkit";
 export const name = pluginPackageJson.name;
 
 export const createNodesV2: CreateNodesV2 = [
+  // glob pattern for which files to gather
   "**/package.json",
   (projectConfigurationFiles, _options, context) => {
-    // nothing so far
-    return [];
+    // projectConfigurationFiles: array of paths to package.json files
+    // _options: plugin configuration options (unused in this example)
+    // context: Nx workspace context
+    return []; // Return empty array for now - we'll add logic next
   },
 ];
 ```
 
-The first element in that `createNodesV2` pair is a glob pattern indicating which files should be gathered for this function. Any package that has a `package.json` file will match this glob, so `projectConfigurationFiles` will be an array of paths to each package.json in the workspace.
+The first element in that `createNodesV2` pair is a glob pattern indicating which files should be gathered for this function. Nx intended this to be something like `**/webpack.config.js`, but I'm using it to match any package that has a `package.json` file, so `projectConfigurationFiles` will be an array of paths to each package.json in the workspace.
 
 Try running `pnpm exec nx list`. If everything went well, you should see your plugin listed under "Local workspace plugins" with a "project-inference" label:
 
@@ -235,7 +277,7 @@ Now we need a function that translates from the package.json fields into `BuildO
 }
 ```
 
-The exact code to make this transformation isn't particularly interesting. You can borrow my implementation: [getInferredBuildOptions.ts](https://github.com/bgschiller/inferred-nx-tasks/blob/main/packages/shared-nx-plugins/src/shared/getInferredBuildOptions.ts)
+The exact code to make this transformation isn't particularly interesting. You can borrow my implementation: [getInferredBuildOptions.ts](https://github.com/bgschiller/inferred-nx-tasks/blob/main/packages/my-nx-plugin/src/shared/getInferredBuildOptions.ts)
 
 ## Building a rollup config
 
@@ -282,7 +324,7 @@ function createRollupOptions(
 
 The implementation of `createExternalOption` and `createExternalOptions` is left as an exercise for the reader.
 
-Nah, just kidding. Take a look at [config.ts](https://github.com/bgschiller/inferred-nx-tasks/blob/main/packages/shared-nx-plugins/src/executors/rollup/config.ts) for a complete implementation of `createRollupOptions`, including definitions for `createExternalOption` and `createOutputOptions`.
+Nah, just kidding. Take a look at [config.ts](https://github.com/bgschiller/inferred-nx-tasks/blob/main/packages/my-nx-plugin/src/executors/rollup/config.ts) for a complete implementation of `createRollupOptions`, including definitions for `createExternalOption` and `createOutputOptions`.
 
 This rests on the assumption that we're okay using a mostly consistent set of plugins across the whole monorepo. You can probably do something else clever with tags if that doesn't hold for you.
 
@@ -397,6 +439,29 @@ function createRollupTarget(packageJson: PackageJson): TargetConfiguration {
   };
 }
 ```
+
+## Troubleshooting
+
+### Plugin Not Appearing in `nx list`
+
+- Ensure the plugin is listed in your root `package.json` dependencies, and that you've run `pnpm install` to install it.
+- Check that it's included in `nx.json` plugins array
+- Try running `pnpm exec nx reset` to clear Nx cache
+
+### Tasks Not Being Generated
+
+- Verify your package.json has the correct `nx.tags` structure
+- Check the plugin logs with `nx run-many --verbose -t test`. This rebuilds the project graph, and `--verbose` will show you a traceback if your plugin is crashing.
+
+### Errors in compileSourceTextModules
+
+Newer versions of Nx seem to have trouble when the nx plugin's package.json "main" and "module" fields point at TypeScript files. You may need to add a build target to the plugin's package.json and ensure your plugin is built before it's used. I don't recommend trying to bootstrap the plugin's build process from the plugin itself—do it the straightforward way and use `tsc` or `esbuild` or something.
+
+## Migrating an Existing Monorepo
+
+If you're migrating an existing monorepo to use this approach, I recommend starting small. Use a single tag, like `vitest` or `jest`, and replace a single package's test target with the new inferred target.
+
+As you add more tags, you can remove the targets they replace from project.json files (and the configs—that's the satisfying bit).
 
 ## Conclusion
 

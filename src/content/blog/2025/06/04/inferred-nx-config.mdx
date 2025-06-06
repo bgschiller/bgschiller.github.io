@@ -6,7 +6,7 @@ category: blog
 tags: [nodejs, javascript, nx, monorepo, configuration, tools, development]
 ---
 
-import Warning from '../../../../../components/Warning.astro';
+import Warning from "../../../../../components/Warning.astro";
 
 Nx supports inferring tasks by looking at config files. Briefly, that means that if you have a webpack.config.js file in a package, the `@nx/webpack` plugin will automatically supply `build`, `serve` and `preview` tasks for that package.
 
@@ -20,7 +20,9 @@ Let's borrow the mechanism of Inferred Tasks, but use it to generate configs at 
 
 This post assumes you're using a pnpm workspace, but it will likely work similarly regardless.
 
-Also, I'd like to acknowledge Rahul Kadyan, who set this up in the monorepo I work in at Grammarly. Most of the code is his work, I'm just writing to share and explain it.
+If you want to skip ahead, you can find the code in [inferred-nx-tasks](https://github.com/bgschiller/inferred-nx-tasks).
+
+Also, I'd like to acknowledge [Rahul Kadyan](https://znck.dev), who set this up in the monorepo I work in at Grammarly. Most of the code is his work, I'm just writing to share and explain it.
 
 ## Create an Nx plugin
 
@@ -43,7 +45,7 @@ diff --git i/package.json w/package.json
    },
    "defaultBase": "main",
 -  "plugins": ["@nx/vite"],
-+  "plugins": ["@grammarly/nx-plugin", "@nx/vite"],
++  "plugins": ["my-nx-plugin", "@nx/vite"],
    "parallel": 20,
    "tasksRunnerOptions": {
      "default": {
@@ -53,10 +55,8 @@ diff --git i/package.json w/package.json
 @@ -9,7 +9,6 @@
    "devDependencies": {
      "@changesets/cli": "catalog:",
-     "@grammarly/eslint-config": "workspace:^",
--    "@grammarly/nx-plugin": "workspace:^",
-     "@grammarly/nx-task-runner": "catalog:",
-     "@grammarly/tsconfig": "workspace:^",
++    "my-nx-plugin": "workspace:^"
+   }
 ```
 
 ## export `createNodesV2` and `name` from your new plugin
@@ -83,15 +83,15 @@ The first element in that `createNodesV2` pair is a glob pattern indicating whic
 Try running `pnpm exec nx list`. If everything went well, you should see your plugin listed under "Local workspace plugins" with a "project-inference" label:
 
 ```
-$ pnpm nx list
+$ pnpm exec nx list
  NX   Local workspace plugins:
 
-@grammarly/nx-plugin (executors,generators,graph-extension,project-inference)
-my-plugin (generators,graph-extension,project-inference)
+my-nx-plugin (executors,graph-extension,project-inference)
 ```
 
 <Warning variant="info">
-Nx doesn't seem to notice when a local plugin is changed. You may find that you need to run `pnpm exec nx reset` to get it to pick up the changes.
+  Nx doesn't seem to notice when a local plugin is changed. You may find that
+  you need to run `pnpm exec nx reset` to get it to pick up the changes.
 </Warning>
 
 ## Build some config objects
@@ -156,7 +156,6 @@ projectConfigurationFiles.flatMap((file) => {
     projects: {
       [path.dirname(file)]: {
         name: file,
-        projectType: parent === "libs" ? "library" : "application",
         targets,
       },
     },
@@ -236,7 +235,7 @@ Now we need a function that translates from the package.json fields into `BuildO
 }
 ```
 
-The exact code to make this transformation isn't particularly interesting. You can borrow my implementation: [getInferredBuildOptions.ts](./getInferredBuildOptions.ts)
+The exact code to make this transformation isn't particularly interesting. You can borrow my implementation: [getInferredBuildOptions.ts](https://github.com/bgschiller/inferred-nx-tasks/blob/main/packages/shared-nx-plugins/src/shared/getInferredBuildOptions.ts)
 
 ## Building a rollup config
 
@@ -283,7 +282,7 @@ function createRollupOptions(
 
 The implementation of `createExternalOption` and `createExternalOptions` is left as an exercise for the reader.
 
-Nah, just kidding. Take a look at [config.ts](./config.ts) for a complete implementation of `createRollupOptions`, including definitions for `createExternalOption` and `createOutputOptions`.
+Nah, just kidding. Take a look at [config.ts](https://github.com/bgschiller/inferred-nx-tasks/blob/main/packages/shared-nx-plugins/src/executors/rollup/config.ts) for a complete implementation of `createRollupOptions`, including definitions for `createExternalOption` and `createOutputOptions`.
 
 This rests on the assumption that we're okay using a mostly consistent set of plugins across the whole monorepo. You can probably do something else clever with tags if that doesn't hold for you.
 
@@ -365,33 +364,33 @@ if (tags.includes("rollup")) {
 
 // ...
 function createRollupTarget(packageJson: PackageJson): TargetConfiguration {
-    const srcDir = path.posix.join('{projectRoot}', 'src')
-  const outDir = path.posix.join('{projectRoot}', 'dist')
-  const reportsDir = path.posix.join('{projectRoot}', 'reports')
-  const isPublicPackage = !packageJson.private
+  const srcDir = path.posix.join("{projectRoot}", "src");
+  const outDir = path.posix.join("{projectRoot}", "dist");
+  const reportsDir = path.posix.join("{projectRoot}", "reports");
+  const isPublicPackage = !packageJson.private;
   return {
-    executor: "@grammarly/nx-plugin:rollup",
+    executor: "my-nx-plugin:rollup",
     options: {
       clean: true,
-      buildType: 'release',
+      buildType: "release",
       mode: "production",
       preserveModules: !isPublicPackage,
       transformModuleSyntax: isPublicPackage,
     },
     configurations: {
       development: {
-        buildType: 'debug',
+        buildType: "debug",
       },
       production: {
-        buildType: 'release',
+        buildType: "release",
       },
     },
-    defaultConfiguration: 'development',
-    dependsOn: ['^build'],
+    defaultConfiguration: "development",
+    dependsOn: ["^build"],
     inputs: [
       `${srcDir}/**/*`,
-      '{projectRoot}/tsconfig.json',
-      '{projectRoot}/package.json',
+      "{projectRoot}/tsconfig.json",
+      "{projectRoot}/package.json",
     ],
     outputs: [outDir],
     cache: true,

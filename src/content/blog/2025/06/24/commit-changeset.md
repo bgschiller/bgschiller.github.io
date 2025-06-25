@@ -6,7 +6,7 @@ category: blog
 tags: [git, changeset, terminal]
 ---
 
-I use [changesets](https://github.com/changesets/changesets) to manage releases in the main repositories I use at work. (I've [written before about how I prefer it over semantic commits](../../../2023/09/18/changesets-vs-semantic-release.md))
+I use [changesets](https://github.com/changesets/changesets) to manage releases in the main repositories I use at work. (I've [written before about how I prefer it over semantic commits](/blog/2023/09/18/changesets-vs-semantic-release))
 
 I find that, if I've written a clear description of my change for the changeset, I probably want to use the same thing for my commit message. I had been doing this manually, then moved to a shell pipeline that I'd find in my history and re-use, but today I decided to turn it into something a little more polished. Here's the shell function in its entirety, and then I'll explain how it works:
 

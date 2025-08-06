@@ -8,5 +8,11 @@ export default {
         parser: "astro",
       },
     },
+    {
+      files: "*.md",
+      options: {
+        printWidth: 60,
+      },
+    },
   ],
 };

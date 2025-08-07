@@ -1,5 +1,5 @@
 ---
-title: two types are the same
+title: Check that two types are the same in TypeScript
 date: 2025-08-06
 description: A TypeScript pattern for ensuring that two types are the same.
 category: blog
@@ -45,14 +45,14 @@ type UncoveredReadableFields = Exclude<
   (typeof readableFields)[number]
 >;
 
-assertNever(
+expectNever(
   "some field isn't listed" as UncoveredReadableFields,
 );
 ```
 
 Try it out in a [Typescript Playground](https://www.typescriptlang.org/play/?#code/PTAEEsFsEMHNwHYFNQBcAW4DOEcBMkAzRJPCBULAe0hQBtwAjAJ2mYE8AaSq0dqgK6gAxtAQByVAFgAUCFAFiyNOhTMBCVFHrZUoaHSoJYWcAQjSZqdgAcUAJSTQ80RnSQAxcEjpkAvKDiCNC04qAAPoFIMOB0YZHiNuhGSPGBZuKysvIIVADuoHmpzCiIoILM5XkUwlQEAHSgACocIuhi8MbZYBgoAG4GAkg4ZRjYoAxYqI0AmoKUyQK+lEgoYqAAoszMVMzdoIS7+gjsoEgAHqis5ZWQ2KbGoAN0Q1j1srUIU6Alzq7uXh8eBwAQA2rJQIFgqFuOJotBYuJYUkUkj0nhMjIALr6HCfb5YaBaLDEYagRx-Nyeby+UFYrIyWTWOygACqCFqfSQJTwFJcVMBvhBm3OwheBAAPBDyU5+QCaXhONLmUgqIQfrL-tSgVhQQgBJBGNz6TIAHwM6BYLDc1AAOSQXOYAAoAETUWgHBW4CR6SaoUgu3FsjlUR2kPlawXAgCUAG4GYQNMItEZcdbmHaHdynecAFygZCO6P5wvc0AAb2V6B2BWQBS2O2dAAMNBc7MnSCJLUh8wAScvnAC+TejskHQA). You should see that adding an extra field will cause an error because the list will no longer `satisfies ReadableField[]`. Omitting a field will also cause an error because `UncoveredReadableFields` will not be the `never` type.
 
-If you don't have an `assertNever` function, you can define it as `function assertNever(x: never): never { throw new Error("Unexpected value: " + x) }`.
+If you don't have an `expectNever` function, you can define it as `function expectNever(_x: never) { }`.
 
 ## Another use case: No additional properties
 
@@ -109,7 +109,7 @@ type ExtraFieldsIntroduced = Exclude<
   keyof ProductMetric
 >;
 
-assertNever(
+expectNever(
   "an extra field was introduced" as ExtraFieldsIntroduced,
 );
 ```

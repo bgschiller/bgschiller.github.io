@@ -50,7 +50,7 @@ expectNever(
 );
 ```
 
-Try it out in a [Typescript Playground](https://www.typescriptlang.org/play/?#code/PTAEEsFsEMHNwHYFNQBcAW4DOEcBMkAzRJPCBULAe0hQBtwAjAJ2mYE8AaSq0dqgK6gAxtAQByVAFgAUCFAFiyNOhTMBCVFHrZUoaHSoJYWcAQjSZqdgAcUAJSTQ80RnSQAxcEjpkAvKDiCNC04qAAPoFIMOB0YZHiNuhGSPGBZuKysvIIVADuoHmpzCiIoILM5XkUwlQEAHSgACocIuhi8MbZYBgoAG4GAkg4ZRjYoAxYqI0AmoKUyQK+lEgoYqAAoszMVMzdoIS7+gjsoEgAHqis5ZWQ2KbGoAN0Q1j1srUIU6Alzq7uXh8eBwAQA2rJQIFgqFuOJotBYuJYUkUkj0nhMjIALr6HCfb5YaBaLDEYagRx-Nyeby+UFYrIyWTWOygACqCFqfSQJTwFJcVMBvhBm3OwheBAAPBDyU5+QCaXhONLmUgqIQfrL-tSgVhQQgBJBGNz6TIAHwM6BYLDc1AAOSQXOYAAoAETUWgHBW4CR6SaoUgu3FsjlUR2kPlawXAgCUAG4GYQNMItEZcdbmHaHdynecAFygZCO6P5wvc0AAb2V6B2BWQBS2O2dAAMNBc7MnSCJLUh8wAScvnAC+TejskHQA). You should see that adding an extra field will cause an error because the list will no longer `satisfies ReadableField[]`. Omitting a field will also cause an error because `UncoveredReadableFields` will not be the `never` type.
+Try it out in a [Typescript Playground](https://www.typescriptlang.org/play/?#code/C4TwDgpgBAShCGATeAjANhAYgSwmxUAvFAOQB28AthCVAD6kSXzZq0MlgAWA9mTfVLZEJALAAoCQGM+AZ2BQATgmTosufLKJQA2hKikK1EgBpGzVqdLc+NMyWFjxAXSjwtMsvKiz4wbLIAZrhacEioGDh4iDrOEvHioJBQAKpkMgBuEMqIYaqRGohaxACiAB5SaACuiBAAPPqwKhHq0SaNSRA8gUrNalGaOmRVlCjZceIAfAkQZZBSwAByEFmKABQARLI81FDB0VABZCQKaAHAEIgbblppmdmXeS0DRQCUANwJgVXp-nxQs3mSxW2TWAH0ygAuKD8VavKAAbwAvkA). You should see that adding an extra field will cause an error because the list will no longer `satisfies ReadableField[]`. Omitting a field will also cause an error because `UncoveredReadableFields` will not be the `never` type.
 
 If you don't have an `expectNever` function, you can define it as `function expectNever(_x: never) { }`.
 
@@ -105,7 +105,7 @@ These events are safer to use because they remind us to include the right fields
 
 ```ts
 type ExtraFieldsIntroduced = Exclude<
-  keyof SaferMetric,
+  keyof SaferMetric, // oops, there's a bug here. See below
   keyof ProductMetric
 >;
 
@@ -113,5 +113,35 @@ expectNever(
   "an extra field was introduced" as ExtraFieldsIntroduced,
 );
 ```
+
+### An issue with `keyof` and unions
+
+After publishing this, my colleague Steve Marquis pointed out that this _doesn't_ work. `keyof (A | B | C)` will always give the keys common to all three types. To fix it, we need a strange-looking bit of code:
+
+```ts
+type SaferMetricKeys<K = SaferMetric> = K extends K
+  ? keyof K
+  : never;
+```
+
+The name for this trick is [Distributive Conditional Types](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types). To quote the TypeScript docs, "When conditional types act on a generic type, they become distributive when given a union type." For us, that means that within the `<condition> ? <then> : <else>` expression, the `<then>` bit is evaluated for each part of the union type.
+
+```ts
+type SaferMetricKeys<K = SaferMetric> = K extends K
+  ? keyof K
+  : never;
+// the left-hand side of the `extends` is a union type, so any expressions
+// involving it are distributed to each branch of the union
+
+type SaferMetricKeys = SaferMetric extends SaferMetric
+  ? keyof ContextAddedMetric | keyof MessageSentMetric | keyof ResponseReceivedMetric
+  : never;
+
+// SaferMetric *does* extend SaferMetric, so this simplifies to:
+keyof ContextAddedMetric | keyof MessageSentMetric | keyof ResponseReceivedMetric
+// which is what we wanted!
+```
+
+Try it out on [the TypeScript playground](https://www.typescriptlang.org/play/?#code/JYOwLgpgTgZghgYwgAgApQPYBMCuCwCyEYUwCyA3gLABQyyEAbhOAPohwC2EAXMgM4lQAcwDctevwj9+wDCFbAsAfj6DSIMROQIANsBZhVAoZvF0d+w62ZRZ84+pHn6eg2ybWIABwwIAFsYgOJwARtAuOvJgcKDQiipqploWOFJQCY7JkaCCwGA4YHIKSlkaKfRQ0ji6RknlkfwYOFBIZc7aAXBgmfUdFrhQ3cWsnPxBIeFQkQD0M8hwurrIYP4oGKvQyDAGulj8yADuKJzAwv5gyCAQEFi0AL60tKCQsIgoAMLREAAeYACCWCwtyIQnIv0gIH2aEwuHwoNI5GoFk8bA43D4ACIEN8-qw4EDbpjGs1WrxkJi4N5vKwceAIZjkAAfCmQPFSXQQfDFYkPJ40F7QeBIZBEGRwYQQADKhgRZAYfxY0PQ2DwhGIiMo2lRPXR5Mx3HFktYUnAvIsXR6Sj6Zj5NGe9LeIoAStJfCApK6kMBmFg5eDFVCDiq4eqwVqUcw0Vx9VV+O6pKwqt7febXP5ugkbRVkINhvJRvw+MEwhFtX8htm7bQwABPbwoKVwGDQf3IAC82hZX3pf0BwL9GrIXdF0n4EulsqHCBHrvj8k9XIgPpB0-MNfrjebrenAGkILX+AAeXcd5BNltQf0APjPp4hSoOu+0ymQAGsDxgYMhnxZi55pm0DcG2QABRCs4AAMV2fYAElwFhPBbjPcC9BwYEj20C8dzBfdDwAGm0D9ay-GFVXhadaGvdcaBgHAQG5eQFQbfAADkAIAClYH5-1sABKChHntGhfhYsB2NsDjtEpEAFRIOBthgo44AOF5EKQLBGRUsCIOgiA9n4eCSHI25CJoPjRCAA)
 
 This is a good way to lean on TypeScript to help you maintain invariants in your code. It's probably worth adding an explanatory comment where you use it, as I don't think it's a very common pattern.

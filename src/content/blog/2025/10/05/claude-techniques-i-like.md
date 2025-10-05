@@ -1,9 +1,9 @@
 ---
 title: Claude techniques I like
-date: 2025-09-28
+date: 2025-10-05
 description: A couple of simple techniques for getting better results from Claude Code
 category: blog
-tags: [llm, ai, claude]
+tags: [llm, ai, agent, claude]
 ---
 
 I've read a lot of blog posts describing how to set up complicated multi-role agents. So far, they haven't stuck with me. These tricks are simpler than that: things you can do right away that should fit into nearly any coding workflow.

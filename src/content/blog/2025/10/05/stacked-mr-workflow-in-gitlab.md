@@ -1,6 +1,6 @@
 ---
 title: Stacked MR Workflow in Gitlab
-date: 2025-09-28
+date: 2025-10-05
 description: Survey of tools to stack merge requests in GitLab, and a recommended workflow.
 category: blog
 tags: [git, gitlab, command line, tools]

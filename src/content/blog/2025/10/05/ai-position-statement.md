@@ -4,7 +4,6 @@ date: 2025-10-05
 description: My feelings about AI are complicated
 category: blog
 tags: [ai, llm, software development]
-draft: true
 ---
 
 I've written a little about how I'm using AI (in [Claude techniques I like](/blog/2025/10/05/claude-techniques-i-like/) and [Sync and Swim App](/blog/2025/01/13/sync-and-swim-app/)). However, my actual feelings about AI are more complicated, and I was uncomfortable with the apparent endorsement of AI shown in those posts.
